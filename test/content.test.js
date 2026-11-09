@@ -24,7 +24,7 @@ function makeStyle() {
   };
 }
 
-function harness({ width, height, pageHeight }) {
+function harness({ width, height, pageHeight, layoutHeight = height }) {
   const draws = [];
   const downloads = [];
   const buttons = [];
@@ -77,6 +77,7 @@ function harness({ width, height, pageHeight }) {
   const root = element("html");
   root.scrollHeight = pageHeight;
   root.offsetHeight = pageHeight;
+  root.clientHeight = layoutHeight;
   const body = element("body");
   body.scrollHeight = pageHeight;
   body.offsetHeight = pageHeight;
@@ -102,7 +103,7 @@ function harness({ width, height, pageHeight }) {
     }),
     scrollTo(x, y) {
       if (typeof x === "object") {
-        this.scrollY = Math.min(Math.max(0, x.top), pageHeight - height);
+        this.scrollY = Math.min(Math.max(0, x.top), pageHeight - layoutHeight);
       } else {
         this.scrollX = x;
         this.scrollY = y;
@@ -180,6 +181,7 @@ async function runCapture(config) {
   await app.request("begin");
 
   let covered = 0;
+  let lastState;
   while (true) {
     const geometry = await app.request("prepare", { y: Math.max(0, covered - 2) });
     const state = await app.request("append", {
@@ -189,6 +191,7 @@ async function runCapture(config) {
     assert.ok(state.coveredPixels > covered, "Each screenshot must extend coverage");
     assert.equal(app.downloads.length, 0, "No downloads during scrolling");
     covered = state.coveredPixels;
+    lastState = state;
     if (state.complete) {
       break;
     }
@@ -200,7 +203,7 @@ async function runCapture(config) {
   await app.request("complete", { filename, parts, exportId: "test-export" });
   assert.equal(app.window.scrollY, 0, "Page position restored before download");
 
-  return { ...app, parts };
+  return { ...app, parts, lastState };
 }
 
 async function clickButton(app, text) {
@@ -244,4 +247,30 @@ test("discard clears staged images without downloading", async () => {
   await clickButton(app, "Discard");
   assert.equal(app.downloads.length, 0);
   assert.equal(app.staged.size, 0);
+});
+
+test("finishes at Firefox Android scroll limit when screenshots are shorter than layout viewport", async () => {
+  const app = await runCapture({
+    width: 100,
+    height: 100,
+    layoutHeight: 120,
+    pageHeight: 250,
+  });
+
+  assert.equal(app.window.scrollY, 0);
+  assert.equal(app.lastState.complete, true);
+  assert.equal(app.lastState.remainingPixels, 20);
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+});
+
+test("does not terminate early when the scroll position can advance", async () => {
+  const app = await runCapture({
+    width: 100,
+    height: 100,
+    layoutHeight: 100,
+    pageHeight: 350,
+  });
+  assert.equal(app.lastState.remainingPixels, 0);
+  assert.equal(app.downloads.length, 1);
 });
