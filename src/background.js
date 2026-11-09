@@ -143,10 +143,13 @@ async function capture(tab) {
       targetY = nextScrollY(state.coveredPixels, state.scale);
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Capture failed.";
-    console.error("LongPage Snap:", message);
-    if (job.started) {
-      await send(tabId, "fail", { message }).catch(() => {});
+    // User-initiated cancellation is not an error and should close the panel.
+    if (!job.cancelled) {
+      const message = error instanceof Error ? error.message : "Capture failed.";
+      console.error("LongPage Snap:", message);
+      if (job.started) {
+        await send(tabId, "fail", { message }).catch(() => {});
+      }
     }
   } finally {
     if (!job.exporting) {
