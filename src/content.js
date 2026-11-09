@@ -9,7 +9,15 @@
   const MIB = 1024 * 1024;
   const DEFAULT_OPTIONS = { format: "jpeg", mode: "automatic", limits: "dimensions", maxWidth: 4096, maxHeight: 8192, maxFileMiB: 8, quality: 86 };
   const MIME = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
-  const t = (key, vars = {}) => { const raw = browser.i18n?.getMessage(key) || key; return raw.replace(/\{(\w+)\}/g, (_match, name) => String(vars[name] ?? "")); };
+  let uiLanguage = "auto";
+  const t = (key, vars = {}) => {
+    const detected = browser.i18n?.getUILanguage?.() || navigator.language || "en";
+    if (globalThis.LongPageSnapLocales) {
+      return globalThis.LongPageSnapLocales.get(key, uiLanguage, detected, vars);
+    }
+    const raw = browser.i18n?.getMessage?.(key) || key;
+    return raw.replace(/\{(\w+)\}/g, (_match, name) => String(vars[name] ?? ""));
+  };
   let session = null;
 
   function measure() {
@@ -359,6 +367,7 @@
       dispose();
     }
 
+    uiLanguage = settings.language || "auto";
     const overlay = createOverlay();
     session = {
       ...overlay,
@@ -506,7 +515,8 @@
     let quality = writer.settings.quality / 100;
     try {
       let blob = await encodeImage(canvas, writer.settings, quality);
-      const limited = writer.settings.limits !== "dimensions";
+      const limited = writer.settings.mode !== "automatic" &&
+        writer.settings.limits !== "dimensions";
       const maxBytes = writer.settings.maxFileMiB * MIB;
 
       if (limited && writer.settings.format !== "png") {
@@ -594,7 +604,7 @@
       }
       const settings = session.settings;
       const pageHeight = measure().pageHeight;
-      const dimensionLimits = settings.limits !== "fileSize";
+      const dimensionLimits = settings.mode !== "automatic" && settings.limits !== "fileSize";
       const maxWidth = dimensionLimits ? settings.maxWidth : 8192;
       const maxHeight = dimensionLimits ? settings.maxHeight : 16384;
       let scale = Math.min(sourceScale, maxWidth / geometry.width);
