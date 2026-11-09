@@ -42,7 +42,10 @@ function harness({
       tag,
       style: makeStyle(),
       isConnected: true,
-      setAttribute() {},
+      attributes: {},
+      setAttribute(name, value) {
+        this.attributes[name] = value;
+      },
       append() {},
       remove() {
         this.isConnected = false;
@@ -96,6 +99,28 @@ function harness({
   const body = element("body");
   body.scrollHeight = pageHeight;
   body.offsetHeight = pageHeight;
+  let spacerHeight = 0;
+  body.append = (child) => {
+    if (child.attributes["data-longpage-snap-end-spacer"] !== "true") {
+      return;
+    }
+    const height = Number.parseFloat(child.style.getPropertyValue("height"));
+    assert.ok(Number.isFinite(height) && height > 0, "Recovery spacer must have a height");
+    spacerHeight += height;
+    root.scrollHeight += height;
+    root.offsetHeight += height;
+    body.scrollHeight += height;
+    body.offsetHeight += height;
+    const originalRemove = child.remove;
+    child.remove = () => {
+      spacerHeight -= height;
+      root.scrollHeight -= height;
+      root.offsetHeight -= height;
+      body.scrollHeight -= height;
+      body.offsetHeight -= height;
+      originalRemove.call(child);
+    };
+  };
   const document = {
     documentElement: root,
     body,
@@ -119,10 +144,10 @@ function harness({
     scrollTo(x, y) {
       if (typeof x === "object") {
         if (x.top >= growAtScrollY) {
-          root.scrollHeight = growToPageHeight;
-          root.offsetHeight = growToPageHeight;
-          body.scrollHeight = growToPageHeight;
-          body.offsetHeight = growToPageHeight;
+          root.scrollHeight = growToPageHeight + spacerHeight;
+          root.offsetHeight = growToPageHeight + spacerHeight;
+          body.scrollHeight = growToPageHeight + spacerHeight;
+          body.offsetHeight = growToPageHeight + spacerHeight;
         }
         this.scrollY = Math.min(Math.max(0, x.top), root.scrollHeight - layoutHeight);
       } else {
@@ -312,7 +337,26 @@ test("finishes at Firefox Android scroll limit when screenshots are shorter than
 
   assert.equal(app.window.scrollY, 0);
   assert.equal(app.lastState.complete, true);
-  assert.equal(app.lastState.remainingPixels, 20);
+  assert.equal(app.lastState.remainingPixels, 0,
+    "The last screenshot must include the original page bottom");
+  const spacers = app.created.filter((element) =>
+    element.attributes["data-longpage-snap-end-spacer"] === "true");
+  assert.equal(spacers.length, 1, "Capture should extend scrolling only once");
+  assert.equal(spacers[0].isConnected, false, "Temporary spacer must be removed");
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+});
+
+test("Single Image preserves its footer when the screenshot viewport is shorter than layout height", async () => {
+  const app = await runCapture({
+    width: 400,
+    height: 160,
+    layoutHeight: 260,
+    pageHeight: 1100,
+    captureSettings: { mode: "single", maxHeight: 2048 },
+  });
+  assert.ok(app.lastState.remainingPixels <= 2);
+  assert.equal(app.parts, 1);
   assert.equal(app.downloads.length, 1);
   assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
 });
