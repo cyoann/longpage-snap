@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Reproducible LongPage Snap fixtures, Android release checklist and offline file validation.">
+  <title>Capture test lab — LongPage Snap</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="../">LongPage Snap</a>
+      <nav class="primary" aria-label="Main navigation">
+        <a href="../">Overview</a>
+        <a href="./" aria-current="page">Test lab</a>
+        <a href="./verify.html">Verify images</a>
+        <a href="https://github.com/cyoann/longpage-snap">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div class="wrap">
+      <section class="hero" style="padding-bottom:35px">
+        <div class="eyebrow">Release quality assurance</div>
+        <h1>Capture test lab</h1>
+        <p class="lead">Eight controlled pages reproduce the situations most likely to reveal screenshot regressions. Run them on Firefox Android, inspect the resulting image files, and export a release test report.</p>
+        <div class="actions">
+          <a class="btn primary" href="./fixture.html?case=baseline">Start baseline test</a>
+          <a class="btn" href="./verify.html">Verify downloaded files</a>
+        </div>
+        <div class="detail">
+          <strong>How to test.</strong>
+          <p>Open a fixture, tap LongPage Snap in Firefox Android, then inspect the saved result. Check the <span class="mono">START</span> and <span class="mono">FINISH</span> markers and every numbered zone. Set export options in the extension itself before each test. Return here to record Pass, Fail, or Blocked.</p>
+          <p class="small muted">The lab does not invoke the extension or read its settings. This is intentional: a website cannot access Firefox's privileged extension APIs or confirm native downloads.</p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="fixtures-title">
+        <div class="section-head">
+          <h2 id="fixtures-title">Controlled fixtures</h2>
+          <p>Self-contained; no third-party assets or network requests</p>
+        </div>
+        <div class="cards" id="scenario-cards"></div>
+      </section>
+
+      <section class="section" aria-labelledby="checklist-title">
+        <div class="section-head">
+          <h2 id="checklist-title">Release checklist</h2>
+          <p>16 tests covering capture, export, localization, and documented limits</p>
+        </div>
+        <p class="muted">Results stay on this device. They are not submitted or uploaded. Export a JSON file if you want to attach evidence to a GitHub issue or release.</p>
+        <div class="toolbar">
+          <div class="field">
+            <label for="version">Extension version / build</label>
+            <input type="text" id="version" placeholder="e.g. 0.3.3" maxlength="70" autocomplete="off">
+          </div>
+          <button type="button" class="btn primary" id="export-report">Export JSON report</button>
+          <button type="button" class="btn" id="clear-report">Reset checklist</button>
+        </div>
+        <p id="summary" class="summary" role="status" aria-live="polite">Preparing checklist…</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Test / expected outcome</th><th>Status</th><th>Notes</th></tr></thead>
+            <tbody id="checklist"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="section" aria-labelledby="limitations-title">
+        <h2 id="limitations-title">Interpret failures correctly</h2>
+        <ul class="list-lines">
+          <li><strong>Known limitations</strong> (nested scrolling, horizontal overflow, moving content) are not expected to be pixel-perfect. They should finish without hanging, and limitations should remain documented.</li>
+          <li><strong>Memory limits are device-dependent.</strong> Single Image may downscale or stop with a persistent error instead of exporting multiple files.</li>
+          <li><strong>File validation is separate.</strong> The <a href="./verify.html">image validator</a> checks dimensions, format, size and sequence by reading selected local file headers, without uploading them.</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap"><span>LongPage Snap · Local-only test checklist</span><a href="../">Back to project</a></div>
+  </footer>
+  <script type="module" src="./lab.js"></script>
+</body>
+</html>
