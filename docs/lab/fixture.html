@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Capture fixture — LongPage Snap</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="./fixture.css">
+</head>
+<body>
+  <header class="fixture-header">
+    <a href="./" class="brand">← Test lab</a>
+    <span class="mono" id="fixture-label">Fixture</span>
+  </header>
+  <div id="sticky-slot"></div>
+  <main class="fixture-main">
+    <section class="fixture-intro">
+      <div class="eyebrow">LONGPAGE SNAP · CONTROLLED FIXTURE</div>
+      <h1 id="fixture-name">Loading fixture</h1>
+      <p id="fixture-description"></p>
+      <div class="fixture-spec mono" id="fixture-spec"></div>
+      <p class="fixture-expect" id="fixture-expectation"></p>
+      <p class="fixture-hint">Start capture from this page. Keep every numbered zone, including the FINISH marker, in your downloaded result.</p>
+      <span id="start-marker">START · LPS-CAPTURE</span>
+    </section>
+    <div id="zones" class="fixture-zones"></div>
+    <div class="finish" id="finish-marker">
+      <strong>FINISH</strong>
+      <span id="finish-details" class="mono">All zones present</span>
+      <small>LONGPAGE SNAP · END OF FIXTURE</small>
+    </div>
+  </main>
+  <script type="module" src="./fixture.js"></script>
+</body>
+</html>
