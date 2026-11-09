@@ -6,12 +6,12 @@ One tap. The whole page.
 
 ## Status
 
-**Development preview (0.2.1).** Full-page scrolling, JPEG stitching and Android download have been verified on a device. The deferred multipart download workflow requires device testing.
+**Development preview (0.2.2).** Full-page scrolling, JPEG stitching and Android download have been verified on a device. The deferred multipart download workflow requires device testing.
 
 ## Features
 
 - Single-tap capture from the Firefox extension action
-- Sequential scrolling with render-state synchronization and lazy-image checks
+- Sequential scrolling with render-state synchronization, lazy-image checks, and Android scroll-boundary detection
 - Deduplication of previously captured fixed and pinned sticky elements
 - JPEG stitching with an adaptive per-canvas memory budget
 - Automatic numbered JPEG parts when a page exceeds the canvas budget
@@ -45,7 +45,7 @@ Use `org.mozilla.fenix` for Nightly or `org.mozilla.firefox_beta` for Beta.
 
 Open an HTTPS page with content extending below the viewport and tap **LongPage Snap** from Firefox's extension menu. Confirm that the extension scrolls, that the downloaded JPEG contains the entire finite page, and that Firefox returns to the original scroll position. A long page may produce files ending in `-part-001.jpg`, `-part-002.jpg`, etc. Once scrolling finishes, the page returns to its original position and shows **Save image 1 of N**. Confirm Firefox's save dialog, then tap **Save image 2 of N** to export the next part. Single-image captures save automatically.
 
-Verify the result on a normal article, an image-heavy page, and a page with a fixed navigation bar. Check image alignment and gaps at viewport boundaries.
+Verify the result on a normal article, an image-heavy page, and a page with a fixed navigation bar. On Firefox Android, the visible screenshot viewport can be shorter than the layout viewport; capture ends at the actual scroll boundary rather than retrying a position that cannot be reached. Check image alignment and gaps at viewport boundaries.
 
 ## Implementation
 
