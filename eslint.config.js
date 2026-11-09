@@ -6,6 +6,12 @@ export default [
       sourceType: "module",
       globals: {
         browser: "readonly",
+        FileReader: "readonly",
+        Image: "readonly",
+        MutationObserver: "readonly",
+        navigator: "readonly",
+        performance: "readonly",
+        window: "readonly",
         console: "readonly",
         document: "readonly",
         globalThis: "readonly",
