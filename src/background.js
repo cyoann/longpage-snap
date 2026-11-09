@@ -27,7 +27,7 @@ async function assertActive(tabId, windowId) {
 async function discard(tabId, job) {
   jobs.delete(tabId);
   try {
-    await clearExport(job.id, job.parts);
+    await clearExport(job.id, job.parts + 1);
   } catch (error) {
     console.error("LongPage Snap: temporary image cleanup failed", error);
   }
@@ -50,6 +50,7 @@ async function capture(tab) {
 
   try {
     await pruneExports();
+    await recordExport(job.id, tabId, 0);
     await browser.scripting.executeScript({
       target: { tabId },
       files: ["src/content.js"],
@@ -149,8 +150,9 @@ browser.runtime.onMessage.addListener((message, sender) => {
       if (!job || job.exporting || message.index !== job.parts + 1) {
         return Promise.reject(new Error("Unexpected image segment."));
       }
-      return stageSegment(job.id, message.index, message.image).then(() => {
+      return stageSegment(job.id, message.index, message.image).then(async () => {
         job.parts += 1;
+        await recordExport(job.id, tabId, job.parts);
         return { stored: true };
       });
     case "read":
