@@ -272,7 +272,7 @@
         background:none; color:var(--p-muted);
         padding:var(--s-2); text-decoration:none;
         font:500 var(--t-label)/1.2 var(--font-text);
-        cursor:pointer; min-height:36px;
+        cursor:pointer; min-height:44px;
       }
       .settings:hover {background:var(--p-surface);color:var(--p-ink);}
       .body { padding:var(--s-5) var(--s-4); }
