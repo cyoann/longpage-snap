@@ -12,13 +12,13 @@ The public static site is stored in [`docs/`](./docs/) and is prepared for GitHu
 - **Test fixtures and release checklist:** https://cyoann.github.io/longpage-snap/lab/
 - **Local screenshot metadata validator:** https://cyoann.github.io/longpage-snap/lab/verify.html
 
-**Hosting must first be enabled:** Repository Settings → Pages → Deploy from a branch → `main`, `/docs`. The website and its QA fixture tests are independent of the unmerged Android extension work.
+**Website is live:** GitHub Pages serves `main /docs`. Site fixtures and screenshot checks remain independently tested.
 
-The active [Android development branch](https://github.com/cyoann/longpage-snap/tree/feat/android-capture-probe) provides the extension implementation and test install instructions.
+The Android extension is merged into [`main`](https://github.com/cyoann/longpage-snap/tree/main). See the installation instructions below to test it on Firefox Android.
 
 ## Status
 
-**Development preview 0.3.4.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
+**Development preview 0.3.4.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
 
 ## Features
 
