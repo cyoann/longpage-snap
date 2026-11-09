@@ -55,3 +55,11 @@ test("manual language overrides browser locale in the shared translator", () => 
     "Enregistrer l’image 2 sur 3",
   );
 });
+
+test("settings provide a safe public HTTPS entry point to the capture lab", () => {
+  const html = readFileSync(new URL("../options/options.html", import.meta.url), "utf8");
+  assert.match(html, /https:\/\/cyoann\.github\.io\/longpage-snap\/lab\//);
+  assert.match(html, /rel="noopener noreferrer"/);
+  assert.match(html, /data-i18n="testLabTitle"/);
+  assert.match(html, /data-i18n="testLabLink"/);
+});
