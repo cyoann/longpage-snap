@@ -227,6 +227,25 @@
       "text-align:center",
     ].join(";");
 
+    const save = document.createElement("button");
+    save.style.cssText = [
+      "display:none",
+      "margin:12px auto 0",
+      "border:0",
+      "border-radius:7px",
+      "background:#66d4ff",
+      "padding:9px 16px",
+      "font:600 15px system-ui,sans-serif",
+      "color:#111820",
+    ].join(";");
+    save.addEventListener("click", () => {
+      if (session?.export?.done) {
+        void finishExport();
+      } else {
+        void downloadNext();
+      }
+    });
+
     const cancel = document.createElement("button");
     cancel.textContent = "Cancel";
     cancel.style.cssText = [
@@ -240,16 +259,20 @@
       "color:white",
     ].join(";");
     cancel.addEventListener("click", () => {
+      if (session?.export) {
+        void finishExport();
+        return;
+      }
       cancel.disabled = true;
       panel.textContent = "Cancelling…";
       void browser.runtime.sendMessage({ scope: SCOPE, type: "cancel" });
     });
 
     const wrapper = document.createElement("div");
-    wrapper.append(panel, cancel);
+    wrapper.append(panel, save, cancel);
     shadow.append(wrapper);
     document.documentElement.append(host);
-    return { host, panel };
+    return { host, panel, save, cancel };
   }
 
   function begin() {
@@ -272,6 +295,9 @@
       lastSettlingMs: 0,
       writer: null,
       failed: false,
+      restored: false,
+      saving: false,
+      export: null,
     };
 
     saveStyle(document.documentElement, "scroll-behavior", "auto");
@@ -382,43 +408,41 @@
     });
   }
 
-  async function saveSegment(writer, filename, hasNext) {
+  async function stageSegment(writer) {
     const filled = writer.covered - writer.start;
     if (!writer.canvas || filled <= 0) {
       return;
     }
 
     let source = writer.canvas;
-    if (filled < source.height) {
-      const cropped = document.createElement("canvas");
-      cropped.width = source.width;
-      cropped.height = filled;
-      const context = cropped.getContext("2d", { alpha: false });
-      if (!context) {
-        throw new Error("Unable to crop final segment.");
-      }
-      context.drawImage(source, 0, 0);
-      source = cropped;
-    }
-
-    showOverlay("Saving JPEG…");
-    const blob = await encodeJpeg(source);
-    const dataUrl = await blobToDataUrl(blob);
-    writer.parts += 1;
-
-    const suffix = hasNext || writer.parts > 1
-      ? "-part-" + String(writer.parts).padStart(3, "0")
-      : "";
-    const outputName = filename.replace(/\.jpg$/i, suffix + ".jpg");
-    const anchor = document.createElement("a");
-    anchor.href = dataUrl;
-    anchor.download = outputName;
-    anchor.style.display = "none";
-    document.documentElement.append(anchor);
     try {
-      anchor.click();
+      if (filled < source.height) {
+        const cropped = document.createElement("canvas");
+        cropped.width = source.width;
+        cropped.height = filled;
+        const context = cropped.getContext("2d", { alpha: false });
+        if (!context) {
+          throw new Error("Unable to crop final segment.");
+        }
+        context.drawImage(source, 0, 0);
+        source = cropped;
+      }
+
+      showOverlay("Preparing image " + (writer.parts + 1) + "…");
+      const blob = await encodeJpeg(source);
+      const image = await blobToDataUrl(blob);
+      await browser.runtime.sendMessage({
+        scope: SCOPE,
+        type: "stage",
+        index: writer.parts + 1,
+        image,
+      });
+      writer.parts += 1;
     } finally {
-      anchor.remove();
+      if (source !== writer.canvas) {
+        source.width = 0;
+        source.height = 0;
+      }
       writer.canvas.width = 0;
       writer.canvas.height = 0;
       writer.canvas = null;
@@ -426,7 +450,7 @@
     }
   }
 
-  async function append(imageUrl, geometry, filename) {
+  async function append(imageUrl, geometry) {
     if (!session) {
       throw new Error("Capture session is not active.");
     }
@@ -464,7 +488,7 @@
     let cursor = Math.max(writer.covered, top);
     while (cursor < end) {
       if (writer.canvas && cursor >= writer.start + writer.canvas.height) {
-        await saveSegment(writer, filename, true);
+        await stageSegment(writer);
       }
       if (!writer.canvas) {
         allocateSegment(writer, pagePixels - writer.covered);
@@ -495,12 +519,133 @@
     };
   }
 
-  async function finalize(filename) {
+  async function finalize() {
     if (!session?.writer) {
       throw new Error("No frames were captured.");
     }
-    await saveSegment(session.writer, filename, false);
-    return { saveAttempts: session.writer.parts };
+    await stageSegment(session.writer);
+    return { parts: session.writer.parts };
+  }
+
+  function restorePage() {
+    if (!session || session.restored) {
+      return;
+    }
+    session.observer?.disconnect();
+    restoreSuppressedElements();
+    restoreStyles();
+    window.scrollTo(session.originalX, session.originalY);
+    session.restored = true;
+    if (session.writer?.canvas) {
+      session.writer.canvas.width = 0;
+      session.writer.canvas.height = 0;
+    }
+  }
+
+  async function finishExport() {
+    if (!session?.export || session.saving) {
+      return;
+    }
+    session.cancel.disabled = true;
+    session.save.disabled = true;
+    try {
+      const result = await browser.runtime.sendMessage({ scope: SCOPE, type: "finish" });
+      if (!result?.finished) {
+        throw new Error("Unable to release temporary images.");
+      }
+      dispose();
+    } catch (error) {
+      session.panel.textContent = "Cleanup failed: " + error.message;
+      session.cancel.disabled = false;
+      session.save.disabled = false;
+    }
+  }
+
+  async function downloadNext() {
+    if (!session?.export || session.saving || session.export.done) {
+      return;
+    }
+    session.saving = true;
+    session.save.disabled = true;
+    const state = session.export;
+    const index = state.next;
+
+    try {
+      showOverlay("Requesting image " + index + " of " + state.parts + "…");
+      const { image } = await browser.runtime.sendMessage({
+        scope: SCOPE,
+        type: "read",
+        index,
+      });
+      if (!session || session.export !== state ||
+          typeof image !== "string" || !image.startsWith("data:image/jpeg;base64,")) {
+        throw new Error("Image data unavailable.");
+      }
+
+      const suffix = state.parts === 1
+        ? ""
+        : "-part-" + String(index).padStart(3, "0");
+      const anchor = document.createElement("a");
+      anchor.href = image;
+      anchor.download = state.filename.replace(/\.jpg$/i, suffix + ".jpg");
+      anchor.style.display = "none";
+      document.documentElement.append(anchor);
+      try {
+        anchor.click();
+      } finally {
+        anchor.remove();
+      }
+
+      state.next += 1;
+      if (state.next > state.parts) {
+        state.done = true;
+        if (state.parts === 1) {
+          session.saving = false;
+          await finishExport();
+          return;
+        }
+
+        session.panel.textContent =
+          "All " + state.parts + " download requests sent. Confirm each Firefox prompt and check Downloads.";
+        session.save.textContent = "Close";
+        session.cancel.style.display = "none";
+      } else {
+        session.panel.textContent =
+          "Image " + index + " of " + state.parts +
+          " requested. Confirm the Firefox dialog, then save the next image.";
+        session.save.textContent = "Save image " + state.next + " of " + state.parts;
+      }
+    } catch (error) {
+      if (session) {
+        session.panel.textContent = "Download could not start: " + error.message;
+      }
+    } finally {
+      if (session) {
+        session.saving = false;
+        session.save.disabled = false;
+      }
+    }
+  }
+
+  async function complete({ parts, filename }) {
+    if (!session || !Number.isInteger(parts) || parts < 1) {
+      throw new Error("Invalid capture result.");
+    }
+
+    restorePage();
+    session.export = { parts, filename, next: 1, done: false };
+    session.cancel.textContent = "Discard";
+    showOverlay(parts === 1
+      ? "Capture complete. Saving JPEG…"
+      : "Capture complete: " + parts +
+        " JPEG images. Save every part to keep the complete page.");
+    if (parts === 1) {
+      await downloadNext();
+      return { ready: true };
+    }
+    session.save.textContent = "Save image 1 of " + parts;
+    session.save.style.display = "block";
+    return { ready: true };
   }
 
   function fail(message) {
@@ -508,6 +653,7 @@
       return;
     }
     session.failed = true;
+    restorePage();
     showOverlay("Capture stopped: " + message);
     session.host.style.pointerEvents = "none";
   }
@@ -516,11 +662,7 @@
     if (!session) {
       return;
     }
-    session.observer?.disconnect();
-    restoreSuppressedElements();
-    restoreStyles();
-    window.scrollTo(session.originalX, session.originalY);
-    session.writer?.canvas && (session.writer.canvas.width = 0);
+    restorePage();
     const failed = session.failed;
     const host = session.host;
     if (failed) {
@@ -544,7 +686,9 @@
       case "append":
         return append(message.image, message.geometry, message.filename);
       case "finalize":
-        return finalize(message.filename);
+        return finalize();
+      case "complete":
+        return complete(message);
       case "fail":
         fail(message.message);
         return Promise.resolve({ ok: true });
