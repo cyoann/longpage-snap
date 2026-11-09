@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "LongPage Snap",
-  "version": "0.1.0",
-  "description": "Lightweight page screenshots for Firefox on Android.",
+  "version": "0.2.0",
+  "description": "Full-page screenshots for Firefox on Android.",
   "permissions": [
     "activeTab",
     "scripting"
