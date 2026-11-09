@@ -483,10 +483,15 @@
       throw new Error("The viewport exceeds the available canvas budget.");
     }
 
+    if (writer.settings.mode === "single" && writer.parts !== 0) {
+      throw new Error("Single Image cannot create multiple image parts.");
+    }
     if (writer.settings.mode === "single" && remainingPixels > maxHeight) {
       throw new Error("The page grew beyond the single-image canvas limit. Select Automatic export.");
     }
-    let height = Math.min(maxHeight, Math.max(1, remainingPixels));
+    let height = writer.settings.mode === "single"
+      ? maxHeight
+      : Math.min(maxHeight, Math.max(1, remainingPixels));
     while (height >= 1) {
       try {
         const canvas = document.createElement("canvas");
@@ -512,6 +517,41 @@
       }
     }
     throw new Error("Cannot allocate an image segment on this device.");
+  }
+
+  function growSingleCanvas(writer, neededHeight) {
+    if (writer.settings.mode !== "single" || !writer.canvas || writer.parts !== 0) {
+      throw new Error("Cannot extend the current image canvas.");
+    }
+    if (neededHeight > writer.safeHeight) {
+      throw new Error(
+        "This page grew beyond the available single-image memory or dimension limit. " +
+        "Choose Automatic or Split by custom limits.",
+      );
+    }
+
+    const nextHeight = Math.min(
+      writer.safeHeight,
+      Math.max(neededHeight, Math.ceil(writer.canvas.height * 1.35)),
+    );
+    const usedHeight = writer.covered - writer.start;
+    const pixels = writer.context.getImageData(0, 0, writer.width, usedHeight);
+    const expanded = document.createElement("canvas");
+    expanded.width = writer.width;
+    expanded.height = nextHeight;
+    const context = expanded.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("Unable to extend the single-image canvas.");
+    }
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, writer.width, nextHeight);
+    context.putImageData(pixels, 0, 0);
+
+    writer.canvas.width = 0;
+    writer.canvas.height = 0;
+    writer.canvas = expanded;
+    writer.context = context;
+    writer.maxSegmentHeight = nextHeight;
   }
 
   function decodeImage(dataUrl) {
@@ -618,12 +658,33 @@
     if (!writer.canvas || writer.covered <= writer.start) {
       return;
     }
+    if (writer.settings.mode === "single" && writer.parts !== 0) {
+      throw new Error("Single Image cannot export more than one part.");
+    }
+
+    let exportCanvas = writer.canvas;
     try {
-      // Avoid drawing a canvas into a second canvas: Firefox can taint that
-      // copy. A short final segment may have a small white bottom margin.
       showOverlay(t("preparePart", { n: writer.parts + 1 }));
-      await stagePixels(writer, writer.canvas);
+      // Preserve Firefox's restriction against canvas-to-canvas drawImage.
+      // In Single Image mode, remove the reserved blank bottom using pixel
+      // buffers instead. If trimming is too expensive, keep the full canvas.
+      const usedHeight = writer.covered - writer.start;
+      if (writer.settings.mode === "single" && usedHeight < writer.canvas.height) {
+        try {
+          exportCanvas = copyCanvasRows(writer.canvas, 0, usedHeight);
+        } catch (error) {
+          console.warn("LongPage Snap: could not trim single image", error);
+        }
+      }
+      await stagePixels(writer, exportCanvas);
+      if (writer.settings.mode === "single" && writer.parts !== 1) {
+        throw new Error("Single Image did not produce exactly one file.");
+      }
     } finally {
+      if (exportCanvas !== writer.canvas) {
+        exportCanvas.width = 0;
+        exportCanvas.height = 0;
+      }
       writer.canvas.width = 0;
       writer.canvas.height = 0;
       writer.canvas = null;
@@ -650,21 +711,29 @@
       const maxHeight = dimensionLimits ? settings.maxHeight : 16384;
       let scale = Math.min(sourceScale, maxWidth / geometry.width);
       if (settings.mode === "single") {
+        // Reserve space for content revealed by scrolling (lazy images, feeds).
+        // A single-image capture must never turn into multiple JPEG files.
+        const reserve = 1.3;
         scale = Math.min(
-          scale, maxHeight / pageHeight, 16384 / pageHeight,
-          Math.sqrt(memoryBudget() / (4 * geometry.width * pageHeight)),
+          scale,
+          maxHeight / (pageHeight * reserve),
+          16384 / (pageHeight * reserve),
+          Math.sqrt(memoryBudget() / (4 * geometry.width * pageHeight * reserve)),
         );
         if (Math.floor(geometry.width * scale) < 240) {
           throw new Error("A readable single image cannot fit this device. Select Automatic or Multiple images.");
         }
       }
       const width = Math.max(1, Math.floor(geometry.width * scale));
+      const safeHeight = Math.min(
+        maxHeight, 16384, Math.floor(memoryBudget() / (4 * width)),
+      );
       const maxSegmentHeight = settings.mode === "single"
-        ? Math.ceil(pageHeight * scale)
-        : Math.min(maxHeight, 16384, Math.floor(memoryBudget() / (4 * width)));
+        ? Math.min(safeHeight, Math.ceil(pageHeight * scale * 1.3))
+        : safeHeight;
       writer = {
         settings, sourceScale, scale, width, maxSegmentHeight,
-        covered: 0, canvas: null, context: null, start: 0, parts: 0,
+        safeHeight, covered: 0, canvas: null, context: null, start: 0, parts: 0,
       };
       session.writer = writer;
     }
@@ -683,7 +752,11 @@
     let cursor = Math.max(writer.covered, top);
     while (cursor < end) {
       if (writer.canvas && cursor >= writer.start + writer.canvas.height) {
-        await stageSegment(writer);
+        if (writer.settings.mode === "single") {
+          growSingleCanvas(writer, end - writer.start);
+        } else {
+          await stageSegment(writer);
+        }
       }
       if (!writer.canvas) {
         allocateSegment(writer, pagePixels - writer.covered);
@@ -723,6 +796,9 @@
       throw new Error("No frames were captured.");
     }
     await stageSegment(session.writer);
+    if (session.writer.settings.mode === "single" && session.writer.parts !== 1) {
+      throw new Error("Single Image must produce exactly one image.");
+    }
     return { parts: session.writer.parts };
   }
 
