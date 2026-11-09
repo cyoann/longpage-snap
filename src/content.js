@@ -116,7 +116,7 @@
       return;
     }
     session.panel.textContent = message;
-    const progress = message.match(/(\\d+)\\s*%/);
+    const progress = message.match(/(\d+)\s*%/);
     if (progress) {
       session.fill.style.width = progress[1] + "%";
     }
@@ -724,7 +724,7 @@
         exportId: state.exportId,
       });
       if (!session || session.export !== state ||
-          typeof image !== "string" || !image.startsWith("data:image/jpeg;base64,")) {
+          typeof image !== "string" || !/^data:image\/(?:jpeg|png|webp);base64,/.test(image)) {
         throw new Error("Image data unavailable.");
       }
 
