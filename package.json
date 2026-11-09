@@ -5,12 +5,15 @@
   "type": "module",
   "description": "Lightweight page screenshots for Firefox on Android.",
   "scripts": {
-    "check": "node --check src/background.js && node --check src/content.js",
+    "check": "node --check src/background.js && node --check src/content.js && node --check src/filename.js",
     "test": "node --test",
     "lint": "eslint ."
   },
   "devDependencies": {
-    "eslint": "^9.39.0",
-    "web-ext": "^9.0.0"
+    "eslint": "^10.14.0",
+    "web-ext": "^10.8.0"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }
