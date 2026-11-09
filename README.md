@@ -6,7 +6,7 @@ One tap. The whole page.
 
 ## Status
 
-**Development preview (0.2.2).** Full-page scrolling, JPEG stitching and Android download have been verified on a device. The deferred multipart download workflow requires device testing.
+**Development preview (0.2.3).** Full-page scrolling, JPEG stitching and Android download have been verified on a device. The deferred multipart download workflow requires device testing.
 
 ## Features
 
@@ -53,6 +53,8 @@ The background event page coordinates capture with `browser.tabs.captureVisibleT
 
 The output canvas uses a conservative 8–24 MiB pixel budget, taking `navigator.deviceMemory` into account when available. Segment height is calculated from the actual screenshot width. Canvas allocation is probed and reduced on failure; page height itself is not capped.
 
+For Firefox compatibility, JPEG segments are encoded directly from their source canvas; the final segment can include a small white bottom margin when the Android scroll boundary precedes the document's reported height. This avoids Firefox's canvas-to-canvas security error (Bugzilla 1939291).
+
 Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and staged in extension-owned IndexedDB storage. After scrolling finishes, the output is downloaded through the Android-compatible data URL mechanism verified in the initial prototype. Captured segments are cleared when the export is dismissed or the tab navigates away. Abandoned export sessions expire after two hours and are pruned when capture next starts.
 
 ## Limitations
@@ -63,6 +65,7 @@ Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and stage
 - Endless feeds are stopped after sustained growth rather than captured indefinitely.
 - Multipart exports require a labeled save action per JPEG. Android may request a separate confirmation for each file.
 - Temporary JPEG parts occupy local extension storage until exported or discarded.
+- Capture errors now identify whether the failure occurred during JPEG encoding, JPEG conversion, or temporary image storage.
 - A programmatic save attempt does not prove that Android completed every download. Confirm the files in Downloads.
 - Temporary extensions are removed when the `web-ext` debugging session ends.
 
