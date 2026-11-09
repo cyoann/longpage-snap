@@ -9,7 +9,7 @@
   const MIB = 1024 * 1024;
   const DEFAULT_OPTIONS = { format: "jpeg", mode: "automatic", limits: "dimensions", maxWidth: 4096, maxHeight: 8192, maxFileMiB: 8, quality: 86 };
   const MIME = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
-  const t = (key, vars = {}) => { const raw = browser.i18n?.getMessage(key) || key; return raw.replace(/\\{(\\w+)\\}/g, (_match, name) => String(vars[name] ?? "")); };
+  const t = (key, vars = {}) => { const raw = browser.i18n?.getMessage(key) || key; return raw.replace(/\{(\w+)\}/g, (_match, name) => String(vars[name] ?? "")); };
   let session = null;
 
   function measure() {
