@@ -7,6 +7,7 @@ import {
   mimeType,
   normalizeSettings,
   useFileLimit,
+  useDimensionLimit,
 } from "../src/settings.js";
 
 test("normalizes incomplete and invalid preferences", () => {
@@ -52,4 +53,23 @@ test("unreadably tall single-image export fails explicitly", () => {
 test("file size limitation can be enabled independently", () => {
   assert.equal(useFileLimit(normalizeSettings({ limits: "fileSize" })), true);
   assert.equal(useFileLimit(DEFAULT_SETTINGS), false);
+});
+
+test("automatic exports ignore user split thresholds", () => {
+  const settings = normalizeSettings({
+    mode: "automatic", limits: "both", maxHeight: 250, maxFileMiB: 1,
+  });
+  assert.equal(useFileLimit(settings), false);
+  assert.equal(useDimensionLimit(settings), false);
+});
+
+test("custom split mode applies dimension and file limits", () => {
+  const settings = normalizeSettings({ mode: "split", limits: "both" });
+  assert.equal(useFileLimit(settings), true);
+  assert.equal(useDimensionLimit(settings), true);
+});
+
+test("language override is validated", () => {
+  assert.equal(normalizeSettings({ language: "fr" }).language, "fr");
+  assert.equal(normalizeSettings({ language: "ja" }).language, "auto");
 });
