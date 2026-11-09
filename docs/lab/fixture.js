@@ -137,8 +137,11 @@ function appendRange(first, last, extra = false) {
 appendRange(1, scenario.sections);
 
 if (scenario.id === "sticky") {
-  const sticky = addText(document.getElementById("sticky-slot"), "div",
-    "sticky-test", "STICKY HEADER — COUNT ONCE");
+  // The sticky element must itself be a direct child of body. Nesting it
+  // inside a short wrapper would end the sticky constraint immediately.
+  const sticky = document.getElementById("sticky-slot");
+  sticky.className = "sticky-test";
+  sticky.textContent = "STICKY HEADER — COUNT ONCE";
   sticky.dataset.testSticky = "true";
   const fixed = addText(document.body, "div", "fixed-test", "FIXED · COUNT ONCE");
   fixed.dataset.testFixed = "true";
