@@ -521,7 +521,13 @@
     restoreStyles();
     window.scrollTo(session.originalX, session.originalY);
     session.writer?.canvas && (session.writer.canvas.width = 0);
-    session.host.remove();
+    const failed = session.failed;
+    const host = session.host;
+    if (failed) {
+      window.setTimeout(() => host.remove(), 5000);
+    } else {
+      host.remove();
+    }
     session = null;
   }
 
