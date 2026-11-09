@@ -197,7 +197,7 @@ async function runCapture(config) {
   const { parts } = await app.request("finalize");
   assert.equal(app.downloads.length, 0, "All frames are staged before export");
   assert.equal(app.staged.size, parts);
-  await app.request("complete", { filename, parts });
+  await app.request("complete", { filename, parts, exportId: "test-export" });
   assert.equal(app.window.scrollY, 0, "Page position restored before download");
 
   return { ...app, parts };
