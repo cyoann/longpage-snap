@@ -75,7 +75,10 @@
     "progressPreparing": "Preparing files",
     "doneTitle": "Ready to save",
     "captureFailedTitle": "Capture stopped",
-    "captureFailedHint": "No download was started. This error stays visible until you close it."
+    "captureFailedHint": "No download was started. This error stays visible until you close it.",
+    "testLabTitle": "Test capture",
+    "testLabHint": "Run controlled pages and inspect results before a release.",
+    "testLabLink": "Open test lab"
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -150,7 +153,10 @@
     "progressPreparing": "Préparation des fichiers",
     "doneTitle": "Prêt à enregistrer",
     "captureFailedTitle": "Capture interrompue",
-    "captureFailedHint": "Aucun téléchargement n’a été lancé. Ce message reste affiché jusqu’à sa fermeture."
+    "captureFailedHint": "Aucun téléchargement n’a été lancé. Ce message reste affiché jusqu’à sa fermeture.",
+    "testLabTitle": "Tester les captures",
+    "testLabHint": "Utilisez des pages de test et vérifiez les résultats avant une version.",
+    "testLabLink": "Ouvrir le laboratoire"
   }
 };
   const locale = (choice, detected = "") => {
