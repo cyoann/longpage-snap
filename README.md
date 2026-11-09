@@ -6,7 +6,7 @@ One tap. The whole page.
 
 ## Status
 
-**Development preview (0.2.0).** Viewport capture and Android JPEG download have been verified on a device. The full-page capture pipeline has automated tests but still requires Android integration testing.
+**Development preview (0.2.1).** Full-page scrolling, JPEG stitching and Android download have been verified on a device. The deferred multipart download workflow requires device testing.
 
 ## Features
 
@@ -15,6 +15,7 @@ One tap. The whole page.
 - Deduplication of previously captured fixed and pinned sticky elements
 - JPEG stitching with an adaptive per-canvas memory budget
 - Automatic numbered JPEG parts when a page exceeds the canvas budget
+- No save prompts while scrolling; multipart exports are presented after capture with labeled save actions
 - Capture cancellation and restoration of the original scroll position
 
 Screenshots are processed and saved locally. No analytics, tracking, or external services.
@@ -42,7 +43,7 @@ npx web-ext run --target=firefox-android --android-device=DEVICE_SERIAL --firefo
 
 Use `org.mozilla.fenix` for Nightly or `org.mozilla.firefox_beta` for Beta.
 
-Open an HTTPS page with content extending below the viewport and tap **LongPage Snap** from Firefox's extension menu. Confirm that the extension scrolls, that the downloaded JPEG contains the entire finite page, and that Firefox returns to the original scroll position. A long page may produce files ending in `-part-001.jpg`, `-part-002.jpg`, etc.
+Open an HTTPS page with content extending below the viewport and tap **LongPage Snap** from Firefox's extension menu. Confirm that the extension scrolls, that the downloaded JPEG contains the entire finite page, and that Firefox returns to the original scroll position. A long page may produce files ending in `-part-001.jpg`, `-part-002.jpg`, etc. Once scrolling finishes, the page returns to its original position and shows **Save image 1 of N**. Confirm Firefox's save dialog, then tap **Save image 2 of N** to export the next part. Single-image captures save automatically.
 
 Verify the result on a normal article, an image-heavy page, and a page with a fixed navigation bar. Check image alignment and gaps at viewport boundaries.
 
@@ -52,7 +53,7 @@ The background event page coordinates capture with `browser.tabs.captureVisibleT
 
 The output canvas uses a conservative 8–24 MiB pixel budget, taking `navigator.deviceMemory` into account when available. Segment height is calculated from the actual screenshot width. Canvas allocation is probed and reduced on failure; page height itself is not capped.
 
-Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and converted to data URLs for the Android download path validated in the initial prototype.
+Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and staged in extension-owned IndexedDB storage. After scrolling finishes, the output is downloaded through the Android-compatible data URL mechanism verified in the initial prototype. Captured segments are cleared when the export is dismissed.
 
 ## Limitations
 
@@ -60,7 +61,8 @@ Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and conve
 - Sticky detection is heuristic. Complex layouts, canvas animations, video, and content that changes while scrolling may produce artifacts.
 - Lazy-loaded assets that never settle are bounded by an adaptive deadline; some may be omitted.
 - Endless feeds are stopped after sustained growth rather than captured indefinitely.
-- Multiple downloads may be subject to browser prompts or restrictions.
+- Multipart exports require a labeled save action per JPEG. Android may request a separate confirmation for each file.
+- Temporary JPEG parts occupy local extension storage until exported or discarded.
 - A programmatic save attempt does not prove that Android completed every download. Confirm the files in Downloads.
 - Temporary extensions are removed when the `web-ext` debugging session ends.
 

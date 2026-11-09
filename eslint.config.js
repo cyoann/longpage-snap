@@ -6,6 +6,8 @@ export default [
       sourceType: "module",
       globals: {
         browser: "readonly",
+        crypto: "readonly",
+        indexedDB: "readonly",
         FileReader: "readonly",
         Image: "readonly",
         MutationObserver: "readonly",
