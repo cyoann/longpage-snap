@@ -445,7 +445,7 @@
       });
       writer.parts += 1;
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = typeof error?.message === "string" ? error.message : String(error);
       throw new Error("Image " + index + " (" + phase + "): " + reason);
     } finally {
       writer.canvas.width = 0;
