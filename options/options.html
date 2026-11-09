@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>LongPage Snap · Settings</title>
+  <link rel="stylesheet" href="./options.css">
+</head>
+<body>
+  <main class="layout">
+    <header class="topbar">
+      <div class="mark" aria-hidden="true">▣</div>
+      <div>
+        <div class="brand">LongPage Snap</div>
+        <p class="tagline" data-i18n="settingsSubtitle"></p>
+      </div>
+    </header>
+
+    <form id="preferences">
+      <section class="card" aria-labelledby="format-heading">
+        <div class="heading">
+          <div class="eyebrow">01</div>
+          <div>
+            <h1 id="format-heading" data-i18n="sectionFormat">Image format</h1>
+            <p data-i18n="sectionFormatHint"></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="format" data-i18n="formatLabel">Format</label>
+          <select id="format" name="format">
+            <option value="jpeg" data-i18n="formatJpeg"></option>
+            <option value="png" data-i18n="formatPng"></option>
+            <option value="webp" data-i18n="formatWebp"></option>
+          </select>
+        </div>
+
+        <div class="field" id="quality-field">
+          <div class="spread">
+            <label for="quality" data-i18n="qualityLabel">Image quality</label>
+            <output id="quality-value" for="quality">86%</output>
+          </div>
+          <input type="range" id="quality" name="quality" min="30" max="100" step="1">
+          <p class="hint" data-i18n="qualityHint"></p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="layout-heading">
+        <div class="heading">
+          <div class="eyebrow">02</div>
+          <div>
+            <h2 id="layout-heading" data-i18n="sectionMode">Export layout</h2>
+            <p data-i18n="sectionModeHint"></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="mode" data-i18n="modeLabel">Export mode</label>
+          <select id="mode" name="mode">
+            <option value="automatic" data-i18n="modeAutomatic"></option>
+            <option value="single" data-i18n="modeSingle"></option>
+            <option value="split" data-i18n="modeSplit"></option>
+          </select>
+          <p class="hint" id="single-hint" data-i18n="singleWarning" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="limits" data-i18n="limitsLabel">Limit images by</label>
+          <select id="limits" name="limits">
+            <option value="dimensions" data-i18n="limitsDimensions"></option>
+            <option value="fileSize" data-i18n="limitsFileSize"></option>
+            <option value="both" data-i18n="limitsBoth"></option>
+          </select>
+        </div>
+
+        <div class="columns">
+          <div class="field" id="width-field">
+            <label for="maxWidth" data-i18n="maxWidthLabel">Maximum width (px)</label>
+            <input id="maxWidth" name="maxWidth" type="number" min="240" max="16384" step="1" required>
+          </div>
+          <div class="field" id="height-field">
+            <label for="maxHeight" data-i18n="maxHeightLabel">Maximum height (px)</label>
+            <input id="maxHeight" name="maxHeight" type="number" min="240" max="32768" step="1" required>
+          </div>
+        </div>
+        <div class="field" id="filesize-field">
+          <label for="maxFileMiB" data-i18n="maxFileLabel">Maximum file size (MiB)</label>
+          <input id="maxFileMiB" name="maxFileMiB" type="number" min="1" max="100" step="1" required>
+        </div>
+        <p class="callout" data-i18n="splitInfo"></p>
+      </section>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="save" data-i18n="saveSettings">Save settings</button>
+        <button type="button" class="secondary" id="reset" data-i18n="resetSettings">Restore defaults</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </form>
+
+    <footer data-i18n="privacyNote"></footer>
+  </main>
+  <script type="module" src="./options.js"></script>
+</body>
+</html>
