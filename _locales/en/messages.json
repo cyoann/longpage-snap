@@ -1,0 +1,230 @@
+{
+  "extensionName": {
+    "message": "LongPage Snap"
+  },
+  "extensionDescription": {
+    "message": "Lightweight full-page screenshots for Firefox on Android."
+  },
+  "actionCapture": {
+    "message": "Capture full page"
+  },
+  "settingsTitle": {
+    "message": "Settings"
+  },
+  "settingsSubtitle": {
+    "message": "Choose how LongPage Snap exports page screenshots."
+  },
+  "settingsOpen": {
+    "message": "Settings"
+  },
+  "sectionFormat": {
+    "message": "Image format"
+  },
+  "sectionFormatHint": {
+    "message": "Select the encoding used for downloaded images."
+  },
+  "formatLabel": {
+    "message": "Format"
+  },
+  "formatJpeg": {
+    "message": "JPEG · smaller files"
+  },
+  "formatPng": {
+    "message": "PNG · lossless"
+  },
+  "formatWebp": {
+    "message": "WebP · efficient"
+  },
+  "qualityLabel": {
+    "message": "Image quality"
+  },
+  "qualityHint": {
+    "message": "Used for JPEG and WebP. PNG is always lossless."
+  },
+  "sectionMode": {
+    "message": "Export layout"
+  },
+  "sectionModeHint": {
+    "message": "A single image is scaled down when necessary to fit the device's memory and canvas limits."
+  },
+  "modeLabel": {
+    "message": "Export mode"
+  },
+  "modeAutomatic": {
+    "message": "Automatic · device limits"
+  },
+  "modeSingle": {
+    "message": "One image · scale if needed"
+  },
+  "modeSplit": {
+    "message": "Split by custom limits"
+  },
+  "limitsLabel": {
+    "message": "Limit images by"
+  },
+  "limitsDimensions": {
+    "message": "Maximum dimensions"
+  },
+  "limitsFileSize": {
+    "message": "Maximum file size"
+  },
+  "limitsBoth": {
+    "message": "Dimensions and file size"
+  },
+  "maxWidthLabel": {
+    "message": "Maximum width (px)"
+  },
+  "maxHeightLabel": {
+    "message": "Maximum height (px)"
+  },
+  "maxFileLabel": {
+    "message": "Maximum file size (MiB)"
+  },
+  "singleWarning": {
+    "message": "Single-image export may reduce resolution on long pages. If a readable image cannot fit, the capture stops instead of silently splitting."
+  },
+  "splitInfo": {
+    "message": "File-size limits are checked after encoding. Large parts may be divided further; individual downloads remain subject to Firefox confirmation."
+  },
+  "saveSettings": {
+    "message": "Save preferences"
+  },
+  "resetSettings": {
+    "message": "Reset to defaults"
+  },
+  "savedSettings": {
+    "message": "Preferences saved. Changes apply to the next capture."
+  },
+  "settingsError": {
+    "message": "Could not save preferences."
+  },
+  "privacyNote": {
+    "message": "Local processing. No network upload, tracking or analytics."
+  },
+  "captureTitle": {
+    "message": "Capturing page"
+  },
+  "captureSubtitle": {
+    "message": "Please keep this tab open."
+  },
+  "captureProgress": {
+    "message": "Capturing · {n}%"
+  },
+  "preparePart": {
+    "message": "Preparing image {n}…"
+  },
+  "captureDone": {
+    "message": "Capture complete"
+  },
+  "captureSingle": {
+    "message": "Your screenshot is ready."
+  },
+  "captureMultiple": {
+    "message": "{n} images are ready. Save every part to keep the full page."
+  },
+  "savePart": {
+    "message": "Save image {n} of {total}"
+  },
+  "saveSingle": {
+    "message": "Save image"
+  },
+  "saveNext": {
+    "message": "Save next image"
+  },
+  "saveComplete": {
+    "message": "Download requests sent"
+  },
+  "saveCompleteHint": {
+    "message": "Confirm the Firefox prompts and check Downloads."
+  },
+  "requestPart": {
+    "message": "Requesting image {n} of {total}…"
+  },
+  "requestPartNext": {
+    "message": "Image {n} of {total} requested. Confirm Firefox's dialog before continuing."
+  },
+  "discard": {
+    "message": "Discard"
+  },
+  "cancel": {
+    "message": "Cancel capture"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "finishExport": {
+    "message": "Done"
+  },
+  "captureError": {
+    "message": "Capture stopped: {error}"
+  },
+  "exportNote": {
+    "message": "This page is processed locally."
+  },
+  "exportWarning": {
+    "message": "Closing now discards unsaved parts."
+  },
+  "capturingLabel": {
+    "message": "Capturing"
+  },
+  "exportingLabel": {
+    "message": "Ready to export"
+  },
+  "savingLabel": {
+    "message": "Saving"
+  },
+  "capturedPart": {
+    "message": "Part {n} of {total}"
+  },
+  "backSettings": {
+    "message": "Back to Firefox"
+  },
+  "languageLabel": {
+    "message": "Language"
+  },
+  "languageAuto": {
+    "message": "Follow browser"
+  },
+  "languageEn": {
+    "message": "English"
+  },
+  "languageFr": {
+    "message": "French"
+  },
+  "modeAutomaticHint": {
+    "message": "Keeps original resolution. Creates more than one image only when required by the device."
+  },
+  "modeSplitHint": {
+    "message": "Uses your size and dimension limits to control how the page is divided."
+  },
+  "modeSingleHint": {
+    "message": "Produces one image. Long pages are scaled down if needed."
+  },
+  "settingsSectionLimits": {
+    "message": "Custom limits"
+  },
+  "progressCapturing": {
+    "message": "Capturing page"
+  },
+  "progressPreparing": {
+    "message": "Preparing files"
+  },
+  "doneTitle": {
+    "message": "Ready to save"
+  },
+  "captureFailedTitle": {
+    "message": "Capture stopped"
+  },
+  "captureFailedHint": {
+    "message": "No download was started. This error stays visible until you close it."
+  },
+  "testLabTitle": {
+    "message": "Test capture"
+  },
+  "testLabHint": {
+    "message": "Run controlled pages and inspect results before a release."
+  },
+  "testLabLink": {
+    "message": "Open test lab"
+  }
+}

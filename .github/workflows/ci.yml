@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: npm audit --audit-level=high
+      - run: npm run check
+      - run: npm test
+      - run: npm run lint
+      - run: npx web-ext lint
+      - run: npx web-ext build
+      - name: Browser inspection (390px only; desktop waived)
+        run: node scripts/check-popup.mjs --widths 390 --waiver test/mobile-check-waiver.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: longpage-mobile-inspection
+          path: .mobile-check/*-390.png
+          if-no-files-found: error
+          include-hidden-files: true

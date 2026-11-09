@@ -1,0 +1,35 @@
+{
+  "framework": "design-taste-frontend 2.5.1",
+  "classification": {
+    "business": "software",
+    "view": "product utility / browser extension"
+  },
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "panelMaxWidth": 380
+  },
+  "waived": [
+    {
+      "check": "Desktop 1440/1024/820/768 viewports",
+      "reason": "Browser-extension view is strictly mobile panel sized; user explicitly limits checker to 390px."
+    },
+    {
+      "check": "Hero one-screen rhythm, fixed desktop navigation, footer.closing",
+      "reason": "No landing page: in-page extension dialog and add-on options panel must not use desktop website structure."
+    },
+    {
+      "check": "Photographs, 3D, scene effects, animations",
+      "reason": "An operational screenshot utility has no media-driven content; decorative assets would obstruct actions."
+    }
+  ],
+  "enforced": [
+    "390px overflow",
+    "panel <=380px",
+    "visible controls >=44px",
+    "native-style spacing",
+    "language override",
+    "separated destructive action",
+    "focusable controls"
+  ]
+}

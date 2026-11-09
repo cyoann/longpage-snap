@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-preview="panel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LongPage Snap visual test — panel</title>
+  <style>
+    html, body { margin:0; padding:0; font:16px/1.5 system-ui; }
+    body { background:#f7f7f7; color:#202020; padding:16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sample article</h1>
+    <p>This page is only a capture-panel preview for the 390px browser check.</p>
+  </main>
+  <script src="/test/fixtures/mock-browser.js"></script>
+  <script src="/src/locales.js"></script>
+  <script src="/src/content.js"></script>
+  <script>
+    (async () => {
+      await window.captureMessage({
+        scope: "longpage-snap", type: "begin", settings: { language: "fr" },
+      });
+      await window.captureMessage({
+        scope: "longpage-snap", type: "complete", parts: 2,
+        filename: "article.jpg", exportId: "preview-session",
+      });
+    })();
+  </script>
+  <script src="/test/fixtures/mobile-metrics.js"></script>
+</body>
+</html>

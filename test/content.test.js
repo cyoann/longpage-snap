@@ -1,0 +1,465 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import vm from "node:vm";
+import { nextScrollY } from "../src/capture-plan.js";
+
+const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
+const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
+
+function makeStyle() {
+  const properties = new Map();
+  return {
+    cssText: "",
+    setProperty(name, value, priority = "") {
+      properties.set(name, { value, priority });
+    },
+    getPropertyValue(name) {
+      return properties.get(name)?.value ?? "";
+    },
+    getPropertyPriority(name) {
+      return properties.get(name)?.priority ?? "";
+    },
+    removeProperty(name) {
+      properties.delete(name);
+    },
+  };
+}
+
+function harness({
+  width, height, pageHeight, layoutHeight = height, storageError = false,
+  growAtScrollY = Infinity, growToPageHeight = pageHeight,
+}) {
+  const draws = [];
+  const created = [];
+  const downloads = [];
+  const buttons = [];
+  const staged = new Map();
+  let listener;
+
+  function element(tag) {
+    const item = {
+      tag,
+      style: makeStyle(),
+      isConnected: true,
+      setAttribute() {},
+      append() {},
+      remove() {
+        this.isConnected = false;
+      },
+      addEventListener(type, callback) {
+        if (type === "click") {
+          this.click = callback;
+        }
+      },
+      attachShadow() {
+        return { append() {} };
+      },
+      getBoundingClientRect() {
+        return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+      },
+    };
+    created.push(item);
+    if (tag === "button") {
+      buttons.push(item);
+    }
+    if (tag === "a") {
+      item.click = () => downloads.push({ filename: item.download, href: item.href });
+    }
+    if (tag === "canvas") {
+      item.getContext = () => ({
+        fillRect() {},
+        getImageData() {
+          return { data: new Uint8ClampedArray([255, 255, 255, 255]) };
+        },
+        putImageData() {},
+        drawImage(...args) {
+          if (args[0]?.tag === "canvas") {
+            // Firefox WebExtensions Bugzilla 1939291: canvas-to-canvas
+            // copies can throw SecurityError, even for captured data URLs.
+            throw new Error("The operation is insecure");
+          }
+          draws.push(args);
+        },
+      });
+      item.toBlob = (callback, type) => callback({
+        type, size: Math.ceil(item.width * item.height * 0.5),
+      });
+    }
+    return item;
+  }
+
+  const root = element("html");
+  root.scrollHeight = pageHeight;
+  root.offsetHeight = pageHeight;
+  root.clientHeight = layoutHeight;
+  const body = element("body");
+  body.scrollHeight = pageHeight;
+  body.offsetHeight = pageHeight;
+  const document = {
+    documentElement: root,
+    body,
+    title: "Test page",
+    images: [],
+    createElement: element,
+    querySelectorAll: () => [],
+  };
+  const window = {
+    scrollX: 0,
+    scrollY: 0,
+    innerWidth: width,
+    innerHeight: height,
+    visualViewport: null,
+    getComputedStyle: () => ({
+      position: "static",
+      visibility: "visible",
+      display: "block",
+      opacity: "1",
+    }),
+    scrollTo(x, y) {
+      if (typeof x === "object") {
+        if (x.top >= growAtScrollY) {
+          root.scrollHeight = growToPageHeight;
+          root.offsetHeight = growToPageHeight;
+          body.scrollHeight = growToPageHeight;
+          body.offsetHeight = growToPageHeight;
+        }
+        this.scrollY = Math.min(Math.max(0, x.top), root.scrollHeight - layoutHeight);
+      } else {
+        this.scrollX = x;
+        this.scrollY = y;
+      }
+    },
+  };
+
+  let now = 0;
+  class Image {
+    naturalWidth = width;
+    naturalHeight = height;
+    set src(_value) {
+      queueMicrotask(() => this.onload());
+    }
+  }
+  class FileReader {
+    readAsDataURL(blob) {
+      this.result = "data:" + blob.type + ";base64,AAAA";
+      queueMicrotask(() => this.onload());
+    }
+  }
+  class MutationObserver {
+    observe() {}
+    disconnect() {}
+  }
+
+  const browser = {
+    i18n: {
+      getUILanguage() { return "en-US"; },
+      getMessage(key) {
+        const strings = {
+          savePart: "Save image {n} of {total}",
+          discard: "Discard",
+          finishExport: "Close",
+          saveCompleteHint: "Confirm the Firefox prompts.",
+          captureProgress: "Capturing · {n}%",
+          preparingImage: "Preparing image {n}",
+          requestPart: "Requesting image {n} of {total}",
+          requestPartNext: "Image {n} of {total} requested.",
+          captureDone: "Capture complete",
+          captureSingle: "Your screenshot is ready.",
+          captureMultiple: "{n} images ready.",
+          captureError: "Capture stopped: {error}",
+          saveSingle: "Save image",
+          cancel: "Cancel",
+        };
+        return strings[key] ?? key;
+      },
+    },
+    runtime: {
+      onMessage: { addListener(callback) { listener = callback; } },
+      async sendMessage(message) {
+        switch (message.type) {
+          case "stage":
+            if (storageError) {
+              throw new Error("The operation is insecure");
+            }
+            staged.set(message.index, message.image);
+            return { stored: true };
+          case "read":
+            return { image: staged.get(message.index) };
+          case "finish":
+            staged.clear();
+            return { finished: true };
+          default:
+            return { accepted: true };
+        }
+      },
+    },
+  };
+
+  const sandbox = vm.createContext({
+    browser,
+    document,
+    window,
+    navigator: { deviceMemory: 1, language: "en-US" },
+    performance: { now: () => (now += 17) },
+    MutationObserver,
+    Image,
+    FileReader,
+    requestAnimationFrame: (callback) => queueMicrotask(callback),
+    console,
+  });
+  vm.runInContext(locales, sandbox);
+  vm.runInContext(script, sandbox);
+
+  return {
+    created,
+    draws,
+    downloads,
+    staged,
+    buttons,
+    window,
+    request(type, fields = {}) {
+      return listener({ scope: "longpage-snap", type, ...fields });
+    },
+  };
+}
+
+async function runCapture(config) {
+  const app = harness(config);
+  const ext = config.captureSettings?.format === "jpeg" || !config.captureSettings?.format
+    ? "jpg" : config.captureSettings.format;
+  const filename = "longpage-snap-Test." + ext;
+  await app.request("begin", { settings: config.captureSettings ?? {} });
+
+  let covered = 0;
+  let targetY = 0;
+  let lastState;
+  while (true) {
+    const geometry = await app.request("prepare", { y: targetY });
+    const state = await app.request("append", {
+      geometry,
+      image: "data:image/jpeg;base64,AAAA",
+    });
+    assert.ok(state.coveredPixels > covered, "Each screenshot must extend coverage");
+    assert.equal(app.downloads.length, 0, "No downloads during scrolling");
+    covered = state.coveredPixels;
+    lastState = state;
+    if (state.complete) {
+      break;
+    }
+    targetY = nextScrollY(state.coveredPixels, state.scale);
+  }
+
+  const { parts } = await app.request("finalize");
+  assert.equal(app.downloads.length, 0, "All frames are staged before export");
+  assert.equal(app.staged.size, parts);
+  await app.request("complete", { filename, parts, exportId: "test-export" });
+  assert.equal(app.window.scrollY, 0, "Page position restored before download");
+
+  return { ...app, parts, lastState };
+}
+
+async function clickButton(app, text) {
+  const button = app.buttons.find((item) => item.textContent === text);
+  assert.ok(button, "Missing button: " + text);
+  button.click();
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
+test("single JPEG downloads automatically after complete capture", async () => {
+  const app = await runCapture({ width: 100, height: 100, pageHeight: 220 });
+  assert.equal(app.parts, 1);
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+  assert.deepEqual(Array.from(app.draws, (entry) => entry[4]), [100, 98, 22]);
+  assert.equal(app.staged.size, 0, "Temporary image is cleared after export");
+});
+
+test("multipart export waits for explicit, individually labeled saves", async () => {
+  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800, captureSettings: { maxWidth: 10000 } });
+  assert.equal(app.parts, 2);
+  assert.equal(app.downloads.length, 0, "No download until the user chooses to save");
+  assert.equal(app.staged.size, 2);
+
+  await clickButton(app, "Save image 1 of 2");
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test-part-001.jpg");
+  assert.equal(app.staged.size, 2, "Images are retained until export is dismissed");
+
+  await clickButton(app, "Save image 2 of 2");
+  assert.equal(app.downloads.length, 2);
+  assert.equal(app.downloads[1].filename, "longpage-snap-Test-part-002.jpg");
+  assert.ok(app.downloads.every((download) => download.href.startsWith("data:image/jpeg;base64,")));
+
+  await clickButton(app, "Done");
+  assert.equal(app.staged.size, 0, "Images are cleared after export is dismissed");
+});
+
+test("discard clears staged images without downloading", async () => {
+  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800, captureSettings: { maxWidth: 10000 } });
+  await clickButton(app, "Discard");
+  assert.equal(app.downloads.length, 0);
+  assert.equal(app.staged.size, 0);
+});
+
+test("finishes at Firefox Android scroll limit when screenshots are shorter than layout viewport", async () => {
+  const app = await runCapture({
+    width: 100,
+    height: 100,
+    layoutHeight: 120,
+    pageHeight: 250,
+  });
+
+  assert.equal(app.window.scrollY, 0);
+  assert.equal(app.lastState.complete, true);
+  assert.equal(app.lastState.remainingPixels, 20);
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+});
+
+test("does not terminate early when the scroll position can advance", async () => {
+  const app = await runCapture({
+    width: 100,
+    height: 100,
+    layoutHeight: 100,
+    pageHeight: 350,
+  });
+  assert.equal(app.lastState.remainingPixels, 0);
+  assert.equal(app.downloads.length, 1);
+});
+
+test("labels browser storage failures with the failing capture stage", async () => {
+  const app = harness({
+    width: 100,
+    height: 100,
+    pageHeight: 200,
+    storageError: true,
+  });
+  await app.request("begin");
+  const geometry = await app.request("prepare", { y: 0 });
+  await app.request("append", {
+    geometry,
+    image: "data:image/jpeg;base64,AAAA",
+  });
+  await assert.rejects(
+    app.request("finalize"),
+    /Image 1 \(temporary image storage\): The operation is insecure/,
+  );
+  await app.request("cleanup");
+  assert.equal(app.downloads.length, 0);
+});
+
+test("single-image export scales tall pages instead of splitting", async () => {
+  const app = await runCapture({
+    width: 1000,
+    height: 500,
+    pageHeight: 3000,
+    captureSettings: { mode: "single", maxWidth: 4096, maxHeight: 8192 },
+  });
+  assert.equal(app.parts, 1);
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+});
+
+test("PNG output uses matching file extension and MIME type", async () => {
+  const app = await runCapture({
+    width: 400, height: 200, pageHeight: 500,
+    captureSettings: { format: "png", limits: "dimensions" },
+  });
+  assert.equal(app.parts, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.png");
+  assert.match(app.downloads[0].href, /^data:image\/png;base64,/);
+});
+
+test("file-size constrained exports split oversized parts", async () => {
+  const app = await runCapture({
+    width: 4000, height: 400, pageHeight: 1500,
+    captureSettings: {
+      format: "png", mode: "split", limits: "fileSize",
+      maxFileMiB: 1,
+    },
+  });
+  assert.ok(app.parts > 1);
+  assert.equal(app.downloads.length, 0);
+  assert.equal(app.staged.size, app.parts);
+  await clickButton(app, "Discard");
+  assert.equal(app.staged.size, 0);
+});
+
+test("Single Image stays one file when lazy-loaded content increases page height", async () => {
+  const app = await runCapture({
+    width: 400,
+    height: 160,
+    pageHeight: 400,
+    growAtScrollY: 120,
+    growToPageHeight: 620,
+    captureSettings: { mode: "single" },
+  });
+
+  assert.equal(app.lastState.complete, true);
+  assert.equal(app.parts, 1, "Growing pages must not create a second image");
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+  assert.equal(app.staged.size, 0);
+});
+
+test("Single Image fails instead of splitting when a growing page exceeds device limits", async () => {
+  await assert.rejects(
+    runCapture({
+      width: 4000,
+      height: 500,
+      pageHeight: 1000,
+      growAtScrollY: 350,
+      growToPageHeight: 5000,
+      captureSettings: { mode: "single" },
+    }),
+    /page grew beyond the available single-image memory or dimension limit/i,
+  );
+});
+
+test("manual French selection localizes capture and save controls", async () => {
+  const app = await runCapture({
+    width: 5000,
+    height: 300,
+    pageHeight: 800,
+    captureSettings: { language: "fr", mode: "split", maxWidth: 10000 },
+  });
+  assert.equal(app.parts, 2);
+  await clickButton(app, "Enregistrer l’image 1 sur 2");
+  assert.equal(app.downloads.length, 1);
+  await clickButton(app, "Supprimer");
+  assert.equal(app.staged.size, 0);
+});
+
+test("failed capture stays visible after background cleanup until Close is pressed", async () => {
+  const app = harness({ width: 400, height: 200, pageHeight: 600 });
+  await app.request("begin", { settings: { mode: "single" } });
+  const overlay = app.created.find((element) =>
+    element.tag === "div" && element.style.cssText.includes("z-index:2147483647")
+  );
+  assert.ok(overlay, "A capture overlay should have been created");
+
+  const errorText = "This page grew beyond the available single-image memory or dimension limit.";
+  await app.request("fail", { message: errorText });
+  await app.request("cleanup");
+
+  assert.equal(overlay.isConnected, true, "Cleanup must not dismiss a capture error");
+  assert.equal(overlay.style.pointerEvents, "auto", "Error panel must accept interaction");
+  assert.equal(app.buttons.some((button) => button.textContent === "Close"), true);
+
+  await clickButton(app, "Close");
+  assert.equal(overlay.isConnected, false, "Close must remove the error panel");
+});
+
+test("a new capture dismisses a previous error panel", async () => {
+  const app = harness({ width: 400, height: 200, pageHeight: 600 });
+  await app.request("begin");
+  const overlay = app.created.find((element) =>
+    element.tag === "div" && element.style.cssText.includes("z-index:2147483647")
+  );
+  await app.request("fail", { message: "Unable to allocate image memory." });
+  await app.request("cleanup");
+  await app.request("begin");
+  assert.equal(overlay.isConnected, false, "Old errors must not block a new capture");
+  await app.request("cleanup");
+});

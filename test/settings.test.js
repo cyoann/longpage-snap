@@ -1,0 +1,91 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  DEFAULT_SETTINGS,
+  chooseOutputScale,
+  extensionFor,
+  mimeType,
+  normalizeSettings,
+  useFileLimit,
+  useDimensionLimit,
+  shouldRetrySingleGrowth,
+} from "../src/settings.js";
+
+test("normalizes incomplete and invalid preferences", () => {
+  assert.deepEqual(normalizeSettings(null), DEFAULT_SETTINGS);
+  assert.equal(normalizeSettings({ format: "pdf" }).format, "jpeg");
+  assert.equal(normalizeSettings({ maxHeight: -1 }).maxHeight, DEFAULT_SETTINGS.maxHeight);
+  assert.equal(normalizeSettings({ maxWidth: "2048" }).maxWidth, 2048);
+});
+
+test("maps output extensions and MIME types", () => {
+  assert.equal(extensionFor("jpeg"), "jpg");
+  assert.equal(extensionFor("webp"), "webp");
+  assert.equal(mimeType("png"), "image/png");
+});
+
+test("single-image mode scales a full page within memory and dimensions", () => {
+  const plan = chooseOutputScale({
+    inputWidth: 1080,
+    pageWidth: 360,
+    pageHeight: 6000,
+    imageHeight: 600,
+    memoryBudgetBytes: 16 * 1024 * 1024,
+    settings: { ...DEFAULT_SETTINGS, mode: "single" },
+  });
+  assert.ok(plan.width >= 240);
+  assert.ok(plan.width <= DEFAULT_SETTINGS.maxWidth);
+  assert.ok(plan.segmentMaxHeight <= DEFAULT_SETTINGS.maxHeight);
+  assert.ok(4 * plan.width * plan.segmentMaxHeight <= 16 * 1024 * 1024 + 32768);
+  assert.equal(plan.single, true);
+});
+
+test("unreadably tall single-image export fails explicitly", () => {
+  assert.throws(() => chooseOutputScale({
+    inputWidth: 1080,
+    pageWidth: 360,
+    pageHeight: 200000,
+    imageHeight: 600,
+    memoryBudgetBytes: 8 * 1024 * 1024,
+    settings: { ...DEFAULT_SETTINGS, mode: "single" },
+  }), /readable single image/i);
+});
+
+test("file size limitation can be enabled independently", () => {
+  assert.equal(useFileLimit(normalizeSettings({ mode: "split", limits: "fileSize" })), true);
+  assert.equal(useFileLimit(DEFAULT_SETTINGS), false);
+});
+
+test("automatic exports ignore user split thresholds", () => {
+  const settings = normalizeSettings({
+    mode: "automatic", limits: "both", maxHeight: 250, maxFileMiB: 1,
+  });
+  assert.equal(useFileLimit(settings), false);
+  assert.equal(useDimensionLimit(settings), false);
+});
+
+test("custom split mode applies dimension and file limits", () => {
+  const settings = normalizeSettings({ mode: "split", limits: "both" });
+  assert.equal(useFileLimit(settings), true);
+  assert.equal(useDimensionLimit(settings), true);
+});
+
+test("language override is validated", () => {
+  assert.equal(normalizeSettings({ language: "fr" }).language, "fr");
+  assert.equal(normalizeSettings({ language: "ja" }).language, "auto");
+});
+
+test("retry a growing single-image page once, not arbitrary memory errors", () => {
+  const settings = { ...DEFAULT_SETTINGS, mode: "single" };
+  const growth = new Error(
+    "This page grew beyond the available single-image memory or dimension limit. " +
+    "Choose Automatic or Split by custom limits."
+  );
+  assert.equal(shouldRetrySingleGrowth(settings, growth, 0), true);
+  assert.equal(shouldRetrySingleGrowth(settings, growth, 1), false);
+  assert.equal(shouldRetrySingleGrowth({ ...settings, mode: "automatic" }, growth, 0), false);
+  assert.equal(shouldRetrySingleGrowth(settings, new Error("Out of memory."), 0), false);
+  assert.equal(shouldRetrySingleGrowth(settings, new Error("The operation is insecure."), 0), false);
+  assert.equal(shouldRetrySingleGrowth(settings,
+    new Error("The page grew beyond the single-image canvas limit. Select Automatic export."), 0), true);
+});
