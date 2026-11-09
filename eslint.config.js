@@ -8,9 +8,9 @@ export default [
         browser: "readonly",
         console: "readonly",
         document: "readonly",
-        window: "readonly",
         globalThis: "readonly",
         requestAnimationFrame: "readonly",
+        setTimeout: "readonly",
       },
     },
     rules: {

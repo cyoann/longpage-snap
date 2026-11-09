@@ -44,7 +44,7 @@
     shadow.append(panel);
     document.documentElement.append(host);
 
-    session = { host, panel };
+    session = { host, panel, failed: false };
     return { title: document.title };
   }
 
@@ -93,10 +93,20 @@
   }
 
   function reportError(message) {
-    if (session) {
-      restoreOverlay();
-      session.panel.textContent = `Capture failed: ${message}`;
+    if (!session) {
+      return;
     }
+
+    restoreOverlay();
+    session.failed = true;
+    session.host.style.pointerEvents = "none";
+    session.panel.textContent = `Capture failed: ${message}`;
+    const failedSession = session;
+    setTimeout(() => {
+      if (session === failedSession) {
+        dispose();
+      }
+    }, 5000);
   }
 
   browser.runtime.onMessage.addListener((message) => {
@@ -118,7 +128,9 @@
         reportError(message.message);
         return Promise.resolve({ ok: true });
       case "finish":
-        dispose();
+        if (!session?.failed) {
+          dispose();
+        }
         return Promise.resolve({ ok: true });
       default:
         return undefined;
