@@ -136,6 +136,27 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
   }
 
   const browser = {
+    i18n: {
+      getMessage(key) {
+        const strings = {
+          savePart: "Save image {n} of {total}",
+          discard: "Discard",
+          finishExport: "Close",
+          saveCompleteHint: "Confirm the Firefox prompts.",
+          captureProgress: "Capturing · {n}%",
+          preparingImage: "Preparing image {n}",
+          requestPart: "Requesting image {n} of {total}",
+          requestPartNext: "Image {n} of {total} requested.",
+          captureDone: "Capture complete",
+          captureSingle: "Your screenshot is ready.",
+          captureMultiple: "{n} images ready.",
+          captureError: "Capture stopped: {error}",
+          saveSingle: "Save image",
+          cancel: "Cancel",
+        };
+        return strings[key] ?? key;
+      },
+    },
     runtime: {
       onMessage: { addListener(callback) { listener = callback; } },
       async sendMessage(message) {
