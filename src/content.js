@@ -215,41 +215,107 @@
   function createOverlay() {
     const host = document.createElement("div");
     host.style.cssText = [
-      "all:initial",
-      "position:fixed",
-      "inset:0",
-      "z-index:2147483647",
-      "display:grid",
-      "place-items:center",
-      "background:rgba(15,18,25,.7)",
-      "pointer-events:auto",
+      "all:initial", "position:fixed", "inset:0", "z-index:2147483647",
+      "display:grid", "place-items:center", "padding:20px",
+      "background:rgba(13,18,28,.46)", "pointer-events:auto",
     ].join(";");
 
     const shadow = host.attachShadow({ mode: "closed" });
-    const panel = document.createElement("div");
+    const styles = document.createElement("style");
+    styles.textContent = \`
+      :host { color-scheme: light dark; }
+      *, *::before, *::after { box-sizing: border-box; }
+      .dialog {
+        width: min(100%, 340px);
+        background: #fff; color: #1b2432;
+        border: 1px solid rgba(12, 19, 29, .10);
+        border-radius: 19px;
+        box-shadow: 0 22px 70px rgba(7, 17, 35, .22);
+        padding: 22px;
+        font: 14px/1.5 system-ui, -apple-system, sans-serif;
+      }
+      .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+      .identity { display:flex; align-items:center; gap:11px; font-size:13px; font-weight:760; letter-spacing:-.01em; }
+      .icon { width:32px; height:32px; border-radius:10px; display:grid; place-items:center; background:#e7f0ff; color:#1362da; font-size:20px; }
+      .settings { background:none; border:none; font:inherit; font-size:12px; color:#51657e; padding:9px 2px; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+      .title { margin:24px 0 4px; font-size:19px; font-weight:760; line-height:1.35; letter-spacing:-.025em; }
+      .description { margin:0; font-size:13px; color:#627083; line-height:1.55; }
+      .status { margin:20px 0 12px; color:#34465c; font-size:13px; font-weight:650; }
+      .track { height:5px; border-radius:99px; background:#e6ecf4; overflow:hidden; }
+      .fill { height:100%; width:0%; background:#1362da; border-radius:99px; transition:width .2s ease; }
+      .actions { margin-top:26px; border-top:1px solid #e6eaf0; padding-top:20px; display:grid; gap:16px; }
+      button { min-height:44px; cursor:pointer; border-radius:10px; font:inherit; font-weight:650; }
+      button:focus-visible { outline:3px solid #1362da; outline-offset:3px; }
+      button:disabled { opacity:.6; cursor:default; }
+      .primary { display:none; width:100%; padding:11px 16px; background:#1362da; border:1px solid #1362da; color:#fff; }
+      .primary:hover { background:#084eb8; }
+      .secondary { margin:0 auto; border:0; color:#6c3642; background:transparent; padding:8px 14px; }
+      .secondary:hover { background:#f7edf0; }
+      .privacy { margin:16px 0 0; font-size:11px; text-align:center; color:#7b8798; }
+      @media (prefers-color-scheme: dark) {
+        .dialog { background:#222a35; color:#f4f6fa; border-color:#394453; }
+        .icon { background:#29466c; color:#93c3ff; }
+        .settings { color:#b0c8e7; }
+        .description,.privacy { color:#abb8ca; }
+        .status { color:#d6e0ed; }
+        .track { background:#414d5d; }
+        .fill,.primary { background:#82baff; }
+        .primary { color:#102033; border-color:#82baff; }
+        .primary:hover { background:#a9d0ff; }
+        .actions { border-color:#394453; }
+        .secondary { color:#f8acb5; }
+        .secondary:hover { background:#4b323b; }
+      }
+    \`;
+
+    const card = document.createElement("section");
+    card.className = "dialog";
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-label", "LongPage Snap");
+    card.setAttribute("aria-modal", "true");
+
+    const header = document.createElement("div");
+    header.className = "header";
+    const identity = document.createElement("div");
+    identity.className = "identity";
+    const mark = document.createElement("span");
+    mark.className = "icon";
+    mark.textContent = "▣";
+    mark.setAttribute("aria-hidden", "true");
+    const brand = document.createElement("span");
+    brand.textContent = "LongPage Snap";
+    identity.append(mark, brand);
+    const settingsButton = document.createElement("button");
+    settingsButton.className = "settings";
+    settingsButton.textContent = t("settingsOpen");
+    settingsButton.addEventListener("click", () => {
+      void browser.runtime.sendMessage({ scope: SCOPE, type: "open-settings" });
+    });
+    header.append(identity, settingsButton);
+
+    const title = document.createElement("h2");
+    title.className = "title";
+    title.textContent = t("captureTitle");
+    const description = document.createElement("p");
+    description.className = "description";
+    description.textContent = t("captureSubtitle");
+    const panel = document.createElement("p");
+    panel.className = "status";
     panel.setAttribute("role", "status");
     panel.setAttribute("aria-live", "polite");
-    panel.style.cssText = [
-      "font:600 15px/1.4 system-ui,sans-serif",
-      "color:#fff",
-      "background:#252a36",
-      "padding:18px 22px",
-      "border-radius:12px",
-      "max-width:80vw",
-      "text-align:center",
-    ].join(";");
+    panel.textContent = t("captureTitle");
 
+    const track = document.createElement("div");
+    track.className = "track";
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    track.append(fill);
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
     const save = document.createElement("button");
-    save.style.cssText = [
-      "display:none",
-      "margin:12px auto 0",
-      "border:0",
-      "border-radius:7px",
-      "background:#66d4ff",
-      "padding:9px 16px",
-      "font:600 15px system-ui,sans-serif",
-      "color:#111820",
-    ].join(";");
+    save.className = "primary";
+    save.textContent = t("saveSingle");
     save.addEventListener("click", () => {
       if (session?.export?.done) {
         void finishExport();
@@ -257,34 +323,27 @@
         void downloadNext();
       }
     });
-
     const cancel = document.createElement("button");
-    cancel.textContent = "Cancel";
-    cancel.style.cssText = [
-      "display:block",
-      "margin:12px auto 0",
-      "border:1px solid #777",
-      "border-radius:7px",
-      "background:transparent",
-      "padding:6px 14px",
-      "font:inherit",
-      "color:white",
-    ].join(";");
+    cancel.className = "secondary";
+    cancel.textContent = t("cancel");
     cancel.addEventListener("click", () => {
       if (session?.export) {
         void finishExport();
         return;
       }
       cancel.disabled = true;
-      panel.textContent = "Cancelling…";
+      panel.textContent = t("cancel");
       void browser.runtime.sendMessage({ scope: SCOPE, type: "cancel" });
     });
+    actions.append(save, cancel);
 
-    const wrapper = document.createElement("div");
-    wrapper.append(panel, save, cancel);
-    shadow.append(wrapper);
+    const privacy = document.createElement("p");
+    privacy.className = "privacy";
+    privacy.textContent = t("privacyNote");
+    card.append(header, title, description, panel, track, actions, privacy);
+    shadow.append(styles, card);
     document.documentElement.append(host);
-    return { host, panel, save, cancel };
+    return { host, panel, title, description, fill, track, save, cancel };
   }
 
   function begin(settings = {}) {
