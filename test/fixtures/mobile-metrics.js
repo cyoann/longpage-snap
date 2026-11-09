@@ -5,12 +5,14 @@
     let buttons;
     let translated;
     let separated = true;
+    let preferencesSaved = true;
     if (kind === "options") {
       panel = document.querySelector(".panel");
       buttons = [...document.querySelectorAll("button, select, input[type=number]")];
       translated = document.documentElement.lang === "fr" &&
-        document.getElementById("mode-description").textContent.includes("limites") &&
+        document.getElementById("mode-description").textContent.includes("image") &&
         document.getElementById("custom-limits").hidden === false;
+      preferencesSaved = window.__lastSavedSettings?.mode === "single";
     } else {
       const shadow = document.documentElement.lastElementChild.shadowRoot;
       panel = shadow?.querySelector(".dialog");
@@ -34,13 +36,24 @@
       controlsReach44: buttons.length > 0 && buttons.every((button) =>
         button.getBoundingClientRect().height >= 43.5),
       translated: Boolean(translated),
-      discardSeparated: separated,
+      preferencesSaved, discardSeparated: separated,
     };
     result.passed = result.viewport === 390 && result.panelWidth <= 380 &&
       !result.overflow && result.controlsReach44 &&
-      result.translated && result.discardSeparated;
+      result.translated && result.discardSeparated && result.preferencesSaved;
     document.documentElement.dataset.checkResult =
       encodeURIComponent(JSON.stringify(result));
   }
-  setTimeout(inspect, 950);
+  setTimeout(() => {
+    if (kind === "options") {
+      // Exercise a real change event: selecting Single Image must persist
+      // without pressing Save or submitting the settings form.
+      const select = document.getElementById("mode");
+      select.value = "single";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      setTimeout(inspect, 200);
+    } else {
+      inspect();
+    }
+  }, 950);
 })();
