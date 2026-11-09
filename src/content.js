@@ -549,7 +549,11 @@
     session.cancel.disabled = true;
     session.save.disabled = true;
     try {
-      const result = await browser.runtime.sendMessage({ scope: SCOPE, type: "finish" });
+      const result = await browser.runtime.sendMessage({
+        scope: SCOPE,
+        type: "finish",
+        exportId: session.export.exportId,
+      });
       if (!result?.finished) {
         throw new Error("Unable to release temporary images.");
       }
@@ -576,6 +580,7 @@
         scope: SCOPE,
         type: "read",
         index,
+        exportId: state.exportId,
       });
       if (!session || session.export !== state ||
           typeof image !== "string" || !image.startsWith("data:image/jpeg;base64,")) {
@@ -627,13 +632,14 @@
     }
   }
 
-  async function complete({ parts, filename }) {
-    if (!session || !Number.isInteger(parts) || parts < 1) {
+  async function complete({ parts, filename, exportId }) {
+    if (!session || !Number.isInteger(parts) || parts < 1 ||
+        typeof exportId !== "string" || !exportId) {
       throw new Error("Invalid capture result.");
     }
 
     restorePage();
-    session.export = { parts, filename, next: 1, done: false };
+    session.export = { parts, filename, exportId, next: 1, done: false };
     session.cancel.textContent = "Discard";
     showOverlay(parts === 1
       ? "Capture complete. Saving JPEG…"
