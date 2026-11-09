@@ -35,7 +35,8 @@ await new Promise((done) => server.listen(0, "127.0.0.1", done));
 const port = server.address().port;
 const profile = mkdtempSync(join(tmpdir(), "lps-site-"));
 const child = spawn(chrome, ["--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
-  "--no-first-run", "--remote-debugging-port=0", "--remote-allow-origins=*",
+  "--no-first-run", "--no-default-browser-check", "--disable-gpu",
+  "--remote-debugging-port=0", "--remote-allow-origins=*",
   "--user-data-dir=" + profile, "about:blank"], {stdio:["ignore","ignore","pipe"]});
 const pause = (ms) => new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
 let stderr = "";
@@ -45,18 +46,18 @@ child.stderr.on("data", (chunk) => { stderr += chunk.slice(-400); });
 async function connect() {
   const portFile = join(profile, "DevToolsActivePort");
   let debugPort;
-  for (let i = 0; i < 100; i += 1) {
+  for (let i = 0; i < 180; i += 1) {
     if (existsSync(portFile)) {
       debugPort = Number(readFileSync(portFile, "utf8").split("\n")[0]);
       break;
     }
-    if (child.exitCode !== null) {
-      throw new Error("Chrome stopped: " + stderr);
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error("Chrome stopped: exit=" + child.exitCode + ", signal=" + child.signalCode + ", stderr=" + stderr);
     }
     await pause(100);
   }
   if (!debugPort) {
-    throw new Error("Chrome DevTools timeout.");
+    throw new Error("Chrome DevTools timeout. Chrome=" + chrome + "; exit=" + child.exitCode + "; signal=" + child.signalCode + "; stderr=" + stderr.slice(-1200));
   }
   const targets = await (await fetch("http://127.0.0.1:" + debugPort + "/json/list")).json();
   const target = targets.find((item) => item.type === "page");
