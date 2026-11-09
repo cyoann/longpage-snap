@@ -179,7 +179,7 @@ test("stitches overlapping frames without repeated rows", async () => {
   const app = await runCapture({ width: 100, height: 100, pageHeight: 220 });
   assert.equal(app.downloads.length, 1);
   assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
-  assert.deepEqual(Array.from(app.draws, (entry) => entry[3]), [100, 98, 22]);
+  assert.deepEqual(Array.from(app.draws, (entry) => entry[4]), [100, 98, 22]);
   assert.equal(app.window.scrollY, 0);
 });
 
