@@ -1,5 +1,6 @@
 import { screenshotFilename } from "./filename.js";
 import { nextScrollY } from "./capture-plan.js";
+import { extensionFor, normalizeSettings } from "./settings.js";
 import {
   clearExport,
   pruneExports,
@@ -56,9 +57,11 @@ async function capture(tab) {
       files: ["src/content.js"],
     });
 
+    const preferences = await browser.storage.local.get("settings");
+    const settings = normalizeSettings(preferences.settings);
     job.started = true;
-    const page = await send(tabId, "begin");
-    const filename = screenshotFilename(page.title);
+    const page = await send(tabId, "begin", { settings });
+    const filename = screenshotFilename(page.title).replace(/\.jpg$/i, "." + extensionFor(settings.format));
     let targetY = 0;
     let coveredPixels = 0;
     let previousPageHeight = 0;
@@ -135,6 +138,10 @@ async function capture(tab) {
 browser.runtime.onMessage.addListener((message, sender) => {
   if (message?.scope !== SCOPE) {
     return undefined;
+  }
+
+  if (message.type === "open-settings") {
+    return browser.runtime.openOptionsPage().then(() => ({ opened: true }));
   }
 
   const tabId = sender.tab?.id;
