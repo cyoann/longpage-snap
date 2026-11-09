@@ -253,7 +253,7 @@
       button:disabled { opacity:.6; cursor:default; }
       .primary { display:none; width:100%; padding:11px 16px; background:#1362da; border:1px solid #1362da; color:#fff; }
       .primary:hover { background:#084eb8; }
-      .secondary { margin:0 auto; border:0; color:#6c3642; background:transparent; padding:8px 14px; }
+      .secondary { margin:14px auto 0; border:0; color:#6c3642; background:transparent; padding:8px 14px; }
       .secondary:hover { background:#f7edf0; }
       .privacy { margin:16px 0 0; font-size:11px; text-align:center; color:#7b8798; }
       @media (prefers-color-scheme: dark) {
