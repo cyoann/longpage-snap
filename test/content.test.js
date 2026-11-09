@@ -207,7 +207,7 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
 async function runCapture(config) {
   const app = harness(config);
   const filename = "longpage-snap-Test.jpg";
-  await app.request("begin");
+  await app.request("begin", { settings: config.captureSettings ?? {} });
 
   let covered = 0;
   let lastState;
@@ -252,7 +252,7 @@ test("single JPEG downloads automatically after complete capture", async () => {
 });
 
 test("multipart export waits for explicit, individually labeled saves", async () => {
-  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800 });
+  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800, captureSettings: { maxWidth: 10000 } });
   assert.equal(app.parts, 2);
   assert.equal(app.downloads.length, 0, "No download until the user chooses to save");
   assert.equal(app.staged.size, 2);
@@ -272,7 +272,7 @@ test("multipart export waits for explicit, individually labeled saves", async ()
 });
 
 test("discard clears staged images without downloading", async () => {
-  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800 });
+  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800, captureSettings: { maxWidth: 10000 } });
   await clickButton(app, "Discard");
   assert.equal(app.downloads.length, 0);
   assert.equal(app.staged.size, 0);
