@@ -41,6 +41,8 @@ mkdirSync(output, { recursive:true });
 
 const options = readFileSync(join(root, "options/options.html"), "utf8")
   .replace("<html lang=\"en\"", "<html lang=\"en\" data-preview=\"options\"")
+  .replace('href="./options.css"', 'href="/options/options.css"')
+  .replace('src="./options.js"', 'src="/options/options.js"')
   .replace("<script src=\"../src/locales.js\"></script>",
     "<script src=\"../test/fixtures/mock-browser.js\"></script>" +
     "<script src=\"../src/locales.js\"></script>")
