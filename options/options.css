@@ -56,7 +56,7 @@ body {
   padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--stroke);
 }
-.wordmark { font-size: 15px; font-weight: 650; letter-spacing: -.02em; }
+.wordmark { margin:0; font-size: 15px; font-weight: 650; letter-spacing: -.02em; }
 .topbar-caption { color: var(--p-muted); font-size: var(--t-label); }
 .group { margin: 0; padding: var(--s-5) var(--s-4); border-bottom: 1px solid var(--stroke); }
 .group h1, .group h2, .group h3 {
@@ -67,7 +67,7 @@ body {
 .group h3 { margin-top: var(--s-5); }
 .field { min-width: 0; margin-bottom: var(--s-4); }
 .field:last-child { margin-bottom: 0; }
-.field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
+.field-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 label {
   display: block;
   font-size: var(--t-label);
