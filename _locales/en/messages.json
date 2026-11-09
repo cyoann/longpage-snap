@@ -211,5 +211,11 @@
   },
   "doneTitle": {
     "message": "Ready to save"
+  },
+  "captureFailedTitle": {
+    "message": "Capture stopped"
+  },
+  "captureFailedHint": {
+    "message": "No download was started. This error stays visible until you close it."
   }
 }
