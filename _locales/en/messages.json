@@ -51,13 +51,13 @@
     "message": "Export mode"
   },
   "modeAutomatic": {
-    "message": "Automatic · split when necessary"
+    "message": "Automatic · device limits"
   },
   "modeSingle": {
-    "message": "Single image · fit to device"
+    "message": "One image · scale if needed"
   },
   "modeSplit": {
-    "message": "Multiple images · follow limits"
+    "message": "Split by custom limits"
   },
   "limitsLabel": {
     "message": "Limit images by"
@@ -87,10 +87,10 @@
     "message": "File-size limits are checked after encoding. Large parts may be divided further; individual downloads remain subject to Firefox confirmation."
   },
   "saveSettings": {
-    "message": "Save settings"
+    "message": "Save preferences"
   },
   "resetSettings": {
-    "message": "Restore defaults"
+    "message": "Reset to defaults"
   },
   "savedSettings": {
     "message": "Preferences saved. Changes apply to the next capture."
@@ -144,7 +144,7 @@
     "message": "Image {n} of {total} requested. Confirm Firefox's dialog before continuing."
   },
   "discard": {
-    "message": "Discard capture"
+    "message": "Discard"
   },
   "cancel": {
     "message": "Cancel capture"
@@ -178,5 +178,38 @@
   },
   "backSettings": {
     "message": "Back to Firefox"
+  },
+  "languageLabel": {
+    "message": "Language"
+  },
+  "languageAuto": {
+    "message": "Follow browser"
+  },
+  "languageEn": {
+    "message": "English"
+  },
+  "languageFr": {
+    "message": "French"
+  },
+  "modeAutomaticHint": {
+    "message": "Keeps original resolution. Creates more than one image only when required by the device."
+  },
+  "modeSplitHint": {
+    "message": "Uses your size and dimension limits to control how the page is divided."
+  },
+  "modeSingleHint": {
+    "message": "Produces one image. Long pages are scaled down if needed."
+  },
+  "settingsSectionLimits": {
+    "message": "Custom limits"
+  },
+  "progressCapturing": {
+    "message": "Capturing page"
+  },
+  "progressPreparing": {
+    "message": "Preparing files"
+  },
+  "doneTitle": {
+    "message": "Ready to save"
   }
 }
