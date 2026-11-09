@@ -217,5 +217,14 @@
   },
   "captureFailedHint": {
     "message": "No download was started. This error stays visible until you close it."
+  },
+  "testLabTitle": {
+    "message": "Test capture"
+  },
+  "testLabHint": {
+    "message": "Run controlled pages and inspect results before a release."
+  },
+  "testLabLink": {
+    "message": "Open test lab"
   }
 }
