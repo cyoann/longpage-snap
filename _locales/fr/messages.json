@@ -51,13 +51,13 @@
     "message": "Mode d’exportation"
   },
   "modeAutomatic": {
-    "message": "Automatique · découper si nécessaire"
+    "message": "Automatique · limites de l’appareil"
   },
   "modeSingle": {
-    "message": "Image unique · adapter à l’appareil"
+    "message": "Une seule image · ajuster si nécessaire"
   },
   "modeSplit": {
-    "message": "Plusieurs images · selon les limites"
+    "message": "Découper selon mes limites"
   },
   "limitsLabel": {
     "message": "Limiter les images selon"
@@ -87,10 +87,10 @@
     "message": "La taille des fichiers est vérifiée après encodage. Les grandes parties peuvent être recoupées. Firefox peut demander une confirmation pour chaque fichier."
   },
   "saveSettings": {
-    "message": "Enregistrer les paramètres"
+    "message": "Enregistrer"
   },
   "resetSettings": {
-    "message": "Valeurs par défaut"
+    "message": "Rétablir les valeurs par défaut"
   },
   "savedSettings": {
     "message": "Paramètres enregistrés. Ils s’appliqueront à la prochaine capture."
@@ -144,7 +144,7 @@
     "message": "Image {n} sur {total} demandée. Confirmez la boîte de dialogue Firefox avant de poursuivre."
   },
   "discard": {
-    "message": "Supprimer la capture"
+    "message": "Supprimer"
   },
   "cancel": {
     "message": "Annuler la capture"
@@ -178,5 +178,38 @@
   },
   "backSettings": {
     "message": "Retour à Firefox"
+  },
+  "languageLabel": {
+    "message": "Langue"
+  },
+  "languageAuto": {
+    "message": "Langue du navigateur"
+  },
+  "languageEn": {
+    "message": "Anglais"
+  },
+  "languageFr": {
+    "message": "Français"
+  },
+  "modeAutomaticHint": {
+    "message": "Conserve la résolution d’origine. Découpe uniquement si les limites de l’appareil l’imposent."
+  },
+  "modeSplitHint": {
+    "message": "Applique vos limites de taille et de dimensions pour découper la page."
+  },
+  "modeSingleHint": {
+    "message": "Produit une seule image. Les longues pages sont réduites si nécessaire."
+  },
+  "settingsSectionLimits": {
+    "message": "Limites personnalisées"
+  },
+  "progressCapturing": {
+    "message": "Capture de la page"
+  },
+  "progressPreparing": {
+    "message": "Préparation des fichiers"
+  },
+  "doneTitle": {
+    "message": "Prêt à enregistrer"
   }
 }
