@@ -1,0 +1,16 @@
+{
+  "name": "longpage-snap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lightweight page screenshots for Firefox on Android.",
+  "scripts": {
+    "check": "node --check src/background.js && node --check src/content.js",
+    "test": "node --test",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "eslint": "^9.39.0",
+    "web-ext": "^9.0.0"
+  }
+}

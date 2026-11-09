@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "LongPage Snap",
+  "version": "0.1.0",
+  "description": "Lightweight page screenshots for Firefox on Android.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "scripts": [
+      "src/background.js"
+    ],
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Capture page",
+    "default_icon": {
+      "32": "assets/icon.svg"
+    }
+  },
+  "icons": {
+    "48": "assets/icon.svg",
+    "96": "assets/icon.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "longpage-snap@cyoann.github.io",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
+}

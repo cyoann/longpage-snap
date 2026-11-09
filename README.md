@@ -6,16 +6,8 @@ One tap. The whole page.
 
 ## Status
 
-Early development.
-
-## Goals
-
-- Full-page JPEG capture
-- Adaptive memory management
-- Lazy-loading and sticky element handling
-- One-tap capture and local export
-- Minimal permissions and zero runtime dependencies
+Early development. The first development milestone validates viewport capture and Android JPEG export. Full-page stitching is not implemented yet.
 
 ## Privacy
 
-All image processing happens locally. No analytics, tracking, or external services.
+Screenshots are processed locally. No analytics, tracking, or remote services.
