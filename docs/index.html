@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="LongPage Snap captures full web pages in Firefox on Android. Explore features and run reproducible capture tests.">
+  <meta name="theme-color" content="#145bc4">
+  <title>LongPage Snap — Full-page screenshots for Firefox Android</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a href="./" class="brand">LongPage Snap</a>
+      <nav class="primary" aria-label="Main navigation">
+        <a href="./" aria-current="page">Overview</a>
+        <a href="./lab/">Test lab</a>
+        <a href="./lab/verify.html">Verify images</a>
+        <a href="https://github.com/cyoann/longpage-snap">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div class="wrap">
+      <section class="hero" aria-labelledby="headline">
+        <div class="eyebrow">Firefox for Android · Open source</div>
+        <h1 id="headline">A full-page screenshot.<br>From your phone.</h1>
+        <p class="lead">Capture an entire web page in Firefox Android and save it locally as a single image or a series of JPEG, PNG, or WebP files.</p>
+        <div class="actions">
+          <a class="btn primary" href="./lab/">Open the test lab</a>
+          <a class="btn" href="https://github.com/cyoann/longpage-snap">View source code</a>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="features">
+        <div class="section-head">
+          <h2 id="features">Made for long pages</h2>
+          <p>Development preview · Test builds available in the repository</p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <h3>One image or several</h3>
+            <p>Single Image scales to fit safe canvas limits. Automatic and custom splitting preserve the page in ordered parts.</p>
+          </article>
+          <article class="card">
+            <h3>Choose your format</h3>
+            <p>Export JPEG, PNG, or WebP. Set image quality and optional dimension or file-size limits.</p>
+          </article>
+          <article class="card">
+            <h3>Private, local processing</h3>
+            <p>Captures are processed in your browser. LongPage Snap does not upload screenshots, use analytics, or track browsing.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="tests">
+        <div class="section-head">
+          <h2 id="tests">A reproducible test environment</h2>
+          <p>Use the same fixtures before every release.</p>
+        </div>
+        <p class="lead">The test lab contains deterministic pages for baseline stitching, sticky elements, lazy loading, growing pages, long-page memory limits, and deliberately unsupported layouts.</p>
+        <div class="actions">
+          <a class="btn primary" href="./lab/">Run capture tests</a>
+          <a class="btn" href="./lab/verify.html">Inspect downloaded images</a>
+        </div>
+        <div class="detail">
+          <strong>What the lab can and cannot verify.</strong>
+          <p>Pages are controlled and hosted over HTTPS, with no external assets. The image validator reads file metadata locally. Firefox's actual download confirmation, capture permissions, visual fidelity, and device memory behavior must still be checked on the phone.</p>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="start">
+        <h2 id="start">Get started</h2>
+        <ol class="list-lines">
+          <li><strong>Install a development build</strong> using the instructions in the <a href="https://github.com/cyoann/longpage-snap/blob/main/README.md">GitHub repository</a>. Public add-on store availability is not asserted here.</li>
+          <li><strong>Open the test lab in Firefox Android.</strong> Choose a fixture and capture it using LongPage Snap.</li>
+          <li><strong>Inspect the result.</strong> Use the <a href="./lab/verify.html">local image validator</a> to check file types, dimensions, sizes, and part numbering. Record the outcome in the release checklist.</li>
+        </ol>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>LongPage Snap · MIT-licensed · No tracking</span>
+      <span><a href="https://github.com/cyoann/longpage-snap">Source</a> · <a href="./lab/">Test lab</a></span>
+    </div>
+  </footer>
+</body>
+</html>
