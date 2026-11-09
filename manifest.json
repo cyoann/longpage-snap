@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "LongPage Snap",
-  "version": "0.2.3",
-  "description": "Full-page screenshots for Firefox on Android.",
+  "name": "__MSG_extensionName__",
+  "version": "0.3.0",
+  "description": "__MSG_extensionDescription__",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "background": {
     "scripts": [
@@ -14,7 +15,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Capture page",
+    "default_title": "__MSG_actionCapture__",
     "default_icon": {
       "32": "assets/icon.svg"
     }
@@ -36,5 +37,10 @@
     "gecko_android": {
       "strict_min_version": "142.0"
     }
+  },
+  "default_locale": "en",
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
   }
 }
