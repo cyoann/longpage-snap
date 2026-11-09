@@ -6,16 +6,16 @@ Lightweight full-page screenshots for Firefox on Android.
 
 ## Status
 
-**Development preview 0.3.0.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
+**Development preview 0.3.1.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
 
 ## Features
 
 - **Capture:** one-tap full-page scrolling and stitching, with lazy-image synchronization and duplicate sticky-element suppression
 - **Export:** JPEG, PNG, or WebP (subject to browser encoder availability); adjustable JPEG/WebP quality
-- **Mode:** Automatic (split only when necessary), Single image (downscale to fit), or Multiple images (split at the configured limits)
+- **Mode:** Automatic (hardware limits only), Single image (downscale to fit), or Split by custom limits (explicit output thresholds)
 - **Limits:** maximum image dimensions, maximum actual encoded file size, or both
-- **Accessibility:** responsive capture dialog with progress, prominent download actions, separated destructive controls, and dark/light system themes
-- **Languages:** English and French via Firefox WebExtensions `_locales` and `browser.i18n`; follows Firefox's UI language
+- **Accessibility:** minimalist 380px capture dialog with progress, separated destructive actions, 44px touch targets, and system light/dark themes
+- **Languages:** English and French; follows Firefox by default, or choose a language explicitly in Settings (independent of Firefox UI language)
 - **Settings:** local, persistent options page; accessible through the Firefox add-on settings or the capture dialog
 - **Privacy:** no uploads, network services, analytics, or tracking
 
@@ -49,15 +49,29 @@ Open Firefox's Add-ons manager, select LongPage Snap, and choose **Settings**. T
 | JPEG | Lossy compression; adjustable quality |
 | PNG | Lossless viewport capture and PNG encoding; quality slider disabled |
 | WebP | WebP output when supported by Firefox; adjustable quality |
-| Automatic | Use configured limits and hardware memory budget, split only when needed |
+| Automatic | Preserve source resolution; split only for safe device canvas and memory limits. Ignores custom dimension/file-size thresholds |
 | Single image | Downscale the entire finite page to fit one safe canvas, preserving content order |
-| Multiple images | Cut at the configured dimensions and/or encoded file-size limits |
+| Split by custom limits | Intentionally apply the maximum dimensions and/or encoded file-size limits even when the device could fit a larger image |
 | Maximum dimensions | Constrain width and height in pixels |
 | Maximum file size | Re-encode at lower quality where applicable, then split oversized images based on **actual Blob size** |
 
-**Single-image limitations:** One image cannot have unlimited dimensions. Long pages may need significant downscaling. If the resulting width would be too small to read, or a single JPEG cannot meet the selected file-size limit, capture stops with an explanation rather than silently changing to multipart output. For long pages where fidelity matters, use Automatic or Multiple images.
+**Single-image limitations:** One image cannot have unlimited dimensions. Long pages may need significant downscaling. If the resulting width would be too small to read, or a single JPEG cannot meet the selected file-size limit, capture stops with an explanation rather than silently changing to multipart output. For long pages where fidelity matters, use Automatic or Split by custom limits.
 
 **Multipart exports:** No native download prompt appears before capture is complete. After scrolling, the extension restores the original page position and presents **Save image 1 of N**, followed by separately labeled actions for the remaining parts. Confirm Firefox's native download dialogs as needed. Every part is required to reconstruct the entire page.
+
+## UI and browser checks
+
+The redesign applies the **design-taste-frontend** system.css palette, type, spacing and control tokens directly to a browser-utility interface. Desktop website hero layouts, full-screen sections and closing footers are intentionally not used.
+
+The mobile checker is restricted to **390px viewport / max 380px panel**. Its explicit waiver is in `test/mobile-check-waiver.json`, and the adapted Chromium checker is `scripts/check-popup.mjs`. Both production UI components are rendered by the checker, with browser-only test facades. It verifies horizontal overflow, minimum control size, French language selection and primary-versus-destructive action spacing.
+
+Run the checker in an environment with Chrome or Chromium installed:
+
+```sh
+npm run check:mobile
+```
+
+Screenshots are saved under `.mobile-check/` and, on GitHub Actions, uploaded as a visual artifact.
 
 ## Implementation and safety
 
