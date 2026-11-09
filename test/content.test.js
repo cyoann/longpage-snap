@@ -65,6 +65,7 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
         getImageData() {
           return { data: new Uint8ClampedArray([255, 255, 255, 255]) };
         },
+        putImageData() {},
         drawImage(...args) {
           if (args[0]?.tag === "canvas") {
             // Firefox WebExtensions Bugzilla 1939291: canvas-to-canvas
@@ -74,7 +75,9 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
           draws.push(args);
         },
       });
-      item.toBlob = (callback) => callback({ type: "image/jpeg" });
+      item.toBlob = (callback, type) => callback({
+        type, size: Math.ceil(item.width * item.height * 0.5),
+      });
     }
     return item;
   }
@@ -125,8 +128,8 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
     }
   }
   class FileReader {
-    readAsDataURL() {
-      this.result = "data:image/jpeg;base64,AAAA";
+    readAsDataURL(blob) {
+      this.result = "data:" + blob.type + ";base64,AAAA";
       queueMicrotask(() => this.onload());
     }
   }
@@ -206,7 +209,9 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
 
 async function runCapture(config) {
   const app = harness(config);
-  const filename = "longpage-snap-Test.jpg";
+  const ext = config.captureSettings?.format === "jpeg" || !config.captureSettings?.format
+    ? "jpg" : config.captureSettings.format;
+  const filename = "longpage-snap-Test." + ext;
   await app.request("begin", { settings: config.captureSettings ?? {} });
 
   let covered = 0;
@@ -323,4 +328,41 @@ test("labels browser storage failures with the failing capture stage", async () 
   );
   await app.request("cleanup");
   assert.equal(app.downloads.length, 0);
+});
+
+test("single-image export scales tall pages instead of splitting", async () => {
+  const app = await runCapture({
+    width: 1000,
+    height: 500,
+    pageHeight: 3000,
+    captureSettings: { mode: "single", maxWidth: 4096, maxHeight: 8192 },
+  });
+  assert.equal(app.parts, 1);
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+});
+
+test("PNG output uses matching file extension and MIME type", async () => {
+  const app = await runCapture({
+    width: 400, height: 200, pageHeight: 500,
+    captureSettings: { format: "png", limits: "dimensions" },
+  });
+  assert.equal(app.parts, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.png");
+  assert.match(app.downloads[0].href, /^data:image\/png;base64,/);
+});
+
+test("file-size constrained exports split oversized parts", async () => {
+  const app = await runCapture({
+    width: 4000, height: 400, pageHeight: 1500,
+    captureSettings: {
+      format: "png", mode: "automatic", limits: "fileSize",
+      maxFileMiB: 1,
+    },
+  });
+  assert.ok(app.parts > 1);
+  assert.equal(app.downloads.length, 0);
+  assert.equal(app.staged.size, app.parts);
+  await clickButton(app, "Discard");
+  assert.equal(app.staged.size, 0);
 });
