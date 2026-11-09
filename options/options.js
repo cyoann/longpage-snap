@@ -71,6 +71,25 @@ function showSaveError(error) {
     (error?.message ? ": " + error.message : "");
 }
 
+let pendingSave = Promise.resolve();
+
+function savePreferences() {
+  if (!form.reportValidity()) {
+    return Promise.resolve(false);
+  }
+  const settings = readForm();
+  // Serialize writes so a late save cannot undo a newer selection.
+  pendingSave = pendingSave.catch(() => {}).then(async () => {
+    await browser.storage.local.set({ settings });
+    status.textContent = t("savedSettings");
+    return true;
+  }).catch((error) => {
+    showSaveError(error);
+    return false;
+  });
+  return pendingSave;
+}
+
 async function initialize() {
   const saved = await browser.storage.local.get("settings");
   populate(normalizeSettings(saved.settings));
@@ -87,29 +106,19 @@ form.addEventListener("change", (event) => {
     localize();
   }
   updateDisplay();
+  // A mode selection takes effect for the next capture without requiring
+  // the separate Save button. Explicit Save remains available.
+  void savePreferences();
 });
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", (event) => {
   event.preventDefault();
-  if (!form.reportValidity()) {
-    return;
-  }
-  try {
-    await browser.storage.local.set({ settings: readForm() });
-    status.textContent = t("savedSettings");
-  } catch (error) {
-    showSaveError(error);
-  }
+  void savePreferences();
 });
 
-document.getElementById("reset").addEventListener("click", async () => {
-  try {
-    await browser.storage.local.set({ settings: { ...DEFAULT_SETTINGS } });
-    populate(DEFAULT_SETTINGS);
-    status.textContent = t("savedSettings");
-  } catch (error) {
-    showSaveError(error);
-  }
+document.getElementById("reset").addEventListener("click", () => {
+  populate(DEFAULT_SETTINGS);
+  void savePreferences();
 });
 
 void initialize().catch(showSaveError);
