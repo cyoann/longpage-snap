@@ -1,105 +1,101 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-type="software">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <title>LongPage Snap · Settings</title>
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <title>LongPage Snap · Preferences</title>
   <link rel="stylesheet" href="./options.css">
 </head>
 <body>
-  <main class="layout">
+  <main class="panel" id="top">
     <header class="topbar">
-      <div class="mark" aria-hidden="true">▣</div>
-      <div>
-        <div class="brand">LongPage Snap</div>
-        <p class="tagline" data-i18n="settingsSubtitle"></p>
-      </div>
+      <div class="wordmark">LongPage Snap</div>
+      <span class="topbar-caption" data-i18n="settingsTitle">Settings</span>
     </header>
 
-    <form id="preferences">
-      <section class="card" aria-labelledby="format-heading">
-        <div class="heading">
-          <div class="eyebrow">01</div>
-          <div>
-            <h1 id="format-heading" data-i18n="sectionFormat">Image format</h1>
-            <p data-i18n="sectionFormatHint"></p>
-          </div>
+    <form id="preferences" novalidate>
+      <section class="group" aria-labelledby="language-heading">
+        <h1 id="language-heading" data-i18n="languageLabel">Language</h1>
+        <div class="field">
+          <label for="language" data-i18n="languageLabel">Language</label>
+          <select id="language" name="language">
+            <option value="auto" data-i18n="languageAuto">Follow browser</option>
+            <option value="en" data-i18n="languageEn">English</option>
+            <option value="fr" data-i18n="languageFr">Français</option>
+          </select>
         </div>
+      </section>
 
+      <section class="group" aria-labelledby="format-heading">
+        <h2 id="format-heading" data-i18n="sectionFormat">Image format</h2>
         <div class="field">
           <label for="format" data-i18n="formatLabel">Format</label>
           <select id="format" name="format">
-            <option value="jpeg" data-i18n="formatJpeg"></option>
-            <option value="png" data-i18n="formatPng"></option>
-            <option value="webp" data-i18n="formatWebp"></option>
+            <option value="jpeg" data-i18n="formatJpeg">JPEG</option>
+            <option value="png" data-i18n="formatPng">PNG</option>
+            <option value="webp" data-i18n="formatWebp">WebP</option>
           </select>
         </div>
-
         <div class="field" id="quality-field">
-          <div class="spread">
+          <div class="field-heading">
             <label for="quality" data-i18n="qualityLabel">Image quality</label>
             <output id="quality-value" for="quality">86%</output>
           </div>
           <input type="range" id="quality" name="quality" min="30" max="100" step="1">
-          <p class="hint" data-i18n="qualityHint"></p>
         </div>
       </section>
 
-      <section class="card" aria-labelledby="layout-heading">
-        <div class="heading">
-          <div class="eyebrow">02</div>
-          <div>
-            <h2 id="layout-heading" data-i18n="sectionMode">Export layout</h2>
-            <p data-i18n="sectionModeHint"></p>
-          </div>
-        </div>
-
+      <section class="group" aria-labelledby="mode-heading">
+        <h2 id="mode-heading" data-i18n="sectionMode">Export layout</h2>
         <div class="field">
           <label for="mode" data-i18n="modeLabel">Export mode</label>
-          <select id="mode" name="mode">
-            <option value="automatic" data-i18n="modeAutomatic"></option>
-            <option value="single" data-i18n="modeSingle"></option>
-            <option value="split" data-i18n="modeSplit"></option>
+          <select id="mode" name="mode" aria-describedby="mode-description">
+            <option value="automatic" data-i18n="modeAutomatic">Automatic</option>
+            <option value="single" data-i18n="modeSingle">One image</option>
+            <option value="split" data-i18n="modeSplit">Split by limits</option>
           </select>
-          <p class="hint" id="single-hint" data-i18n="singleWarning" hidden></p>
+          <p id="mode-description" class="help" data-i18n="modeAutomaticHint">
+            Preserve resolution; split only when required by the device.
+          </p>
         </div>
-
-        <div class="field">
-          <label for="limits" data-i18n="limitsLabel">Limit images by</label>
-          <select id="limits" name="limits">
-            <option value="dimensions" data-i18n="limitsDimensions"></option>
-            <option value="fileSize" data-i18n="limitsFileSize"></option>
-            <option value="both" data-i18n="limitsBoth"></option>
-          </select>
-        </div>
-
-        <div class="columns">
-          <div class="field" id="width-field">
-            <label for="maxWidth" data-i18n="maxWidthLabel">Maximum width (px)</label>
-            <input id="maxWidth" name="maxWidth" type="number" min="240" max="16384" step="1" required>
+        <div id="custom-limits" class="subgroup" hidden>
+          <h3 data-i18n="settingsSectionLimits">Custom limits</h3>
+          <div class="field">
+            <label for="limits" data-i18n="limitsLabel">Limit images by</label>
+            <select id="limits" name="limits">
+              <option value="dimensions" data-i18n="limitsDimensions">Maximum dimensions</option>
+              <option value="fileSize" data-i18n="limitsFileSize">Maximum file size</option>
+              <option value="both" data-i18n="limitsBoth">Both</option>
+            </select>
           </div>
-          <div class="field" id="height-field">
-            <label for="maxHeight" data-i18n="maxHeightLabel">Maximum height (px)</label>
-            <input id="maxHeight" name="maxHeight" type="number" min="240" max="16384" step="1" required>
+          <div class="field-grid" id="dimensions-fields">
+            <div class="field" id="width-field">
+              <label for="maxWidth" data-i18n="maxWidthLabel">Max width (px)</label>
+              <input id="maxWidth" name="maxWidth" type="number" min="240" max="16384" step="1" required>
+            </div>
+            <div class="field" id="height-field">
+              <label for="maxHeight" data-i18n="maxHeightLabel">Max height (px)</label>
+              <input id="maxHeight" name="maxHeight" type="number" min="240" max="16384" step="1" required>
+            </div>
+          </div>
+          <div class="field" id="filesize-field">
+            <label for="maxFileMiB" data-i18n="maxFileLabel">Max file size (MiB)</label>
+            <input id="maxFileMiB" name="maxFileMiB" type="number" min="1" max="100" step="1" required>
           </div>
         </div>
-        <div class="field" id="filesize-field">
-          <label for="maxFileMiB" data-i18n="maxFileLabel">Maximum file size (MiB)</label>
-          <input id="maxFileMiB" name="maxFileMiB" type="number" min="1" max="100" step="1" required>
-        </div>
-        <p class="callout" data-i18n="splitInfo"></p>
       </section>
 
-      <div class="actions">
-        <button type="submit" class="primary" id="save" data-i18n="saveSettings">Save settings</button>
-        <button type="button" class="secondary" id="reset" data-i18n="resetSettings">Restore defaults</button>
+      <div class="form-actions">
+        <button type="submit" id="save" class="primary" data-i18n="saveSettings">Save preferences</button>
+        <button type="button" id="reset" class="reset" data-i18n="resetSettings">Reset to defaults</button>
       </div>
       <p id="status" class="status" role="status" aria-live="polite"></p>
     </form>
-
-    <footer data-i18n="privacyNote"></footer>
   </main>
+  <script src="../src/locales.js"></script>
   <script type="module" src="./options.js"></script>
 </body>
 </html>
