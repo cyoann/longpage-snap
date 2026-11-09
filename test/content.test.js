@@ -31,6 +31,7 @@ function harness({
   growAtScrollY = Infinity, growToPageHeight = pageHeight,
 }) {
   const draws = [];
+  const created = [];
   const downloads = [];
   const buttons = [];
   const staged = new Map();
@@ -58,6 +59,7 @@ function harness({
         return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
       },
     };
+    created.push(item);
     if (tag === "button") {
       buttons.push(item);
     }
@@ -210,6 +212,7 @@ function harness({
   vm.runInContext(script, sandbox);
 
   return {
+    created,
     draws,
     downloads,
     staged,
@@ -426,4 +429,37 @@ test("manual French selection localizes capture and save controls", async () => 
   assert.equal(app.downloads.length, 1);
   await clickButton(app, "Supprimer");
   assert.equal(app.staged.size, 0);
+});
+
+test("failed capture stays visible after background cleanup until Close is pressed", async () => {
+  const app = harness({ width: 400, height: 200, pageHeight: 600 });
+  await app.request("begin", { settings: { mode: "single" } });
+  const overlay = app.created.find((element) =>
+    element.tag === "div" && element.style.cssText.includes("z-index:2147483647")
+  );
+  assert.ok(overlay, "A capture overlay should have been created");
+
+  const errorText = "This page grew beyond the available single-image memory or dimension limit.";
+  await app.request("fail", { message: errorText });
+  await app.request("cleanup");
+
+  assert.equal(overlay.isConnected, true, "Cleanup must not dismiss a capture error");
+  assert.equal(overlay.style.pointerEvents, "auto", "Error panel must accept interaction");
+  assert.equal(app.buttons.some((button) => button.textContent === "Close"), true);
+
+  await clickButton(app, "Close");
+  assert.equal(overlay.isConnected, false, "Close must remove the error panel");
+});
+
+test("a new capture dismisses a previous error panel", async () => {
+  const app = harness({ width: 400, height: 200, pageHeight: 600 });
+  await app.request("begin");
+  const overlay = app.created.find((element) =>
+    element.tag === "div" && element.style.cssText.includes("z-index:2147483647")
+  );
+  await app.request("fail", { message: "Unable to allocate image memory." });
+  await app.request("cleanup");
+  await app.request("begin");
+  assert.equal(overlay.isConnected, false, "Old errors must not block a new capture");
+  await app.request("cleanup");
 });
