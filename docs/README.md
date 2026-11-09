@@ -4,12 +4,12 @@ Public site after GitHub Pages is enabled: https://cyoann.github.io/longpage-sna
 
 ## Publish
 
-This website is committed independently to **`main/docs`**; it does not merge the draft Android extension branch. To activate public hosting once:
+The website is published from **`main/docs`**, and the Firefox Android extension is now merged into **`main`**. Pages deployment is currently enabled. To review or reconfigure hosting:
 
 1. Open **Repository → Settings → Pages**.
 2. Under **Build and deployment**, select **Deploy from a branch**.
 3. Choose branch **`main`** and folder **`/docs`**, then **Save**.
-4. Open the repository's **Visit site** link when GitHub Pages reports a completed deployment.
+4. Open the repository's **Visit site** link to confirm its deployed address.
 
 No domain purchase, Pages build dependencies, API keys, backend or analytics are required. All routes are relative so the project lives under `/longpage-snap/` rather than the domain root.
 
