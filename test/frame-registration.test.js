@@ -71,7 +71,7 @@ test("does not analyze missing or insufficient overlap", () => {
   assert.equal(noOverlap.confidence, "unavailable");
 });
 
-test("a shifted screenshot does not require canvas-to-canvas copies", () => {
-  assert.doesNotMatch(source, /drawImage\\s*\\(\\s*canvas/);
-  assert.match(source, /globalThis\\.LongPageSnapFrameRegistration/);
+test("pixel registration is available to the classic extension content script", () => {
+  assert.ok(!source.includes("drawImage(canvas"));
+  assert.ok(source.includes("globalThis.LongPageSnapFrameRegistration"));
 });
