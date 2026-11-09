@@ -1,5 +1,6 @@
 import { screenshotFilename } from "./filename.js";
 import { nextScrollY } from "./capture-plan.js";
+import { clearSegments, readSegment, stageSegment } from "./segment-store.js";
 
 const SCOPE = "longpage-snap";
 const jobs = new Map();
@@ -15,13 +16,28 @@ async function assertActive(tabId, windowId) {
   }
 }
 
+async function discard(tabId, job) {
+  jobs.delete(tabId);
+  try {
+    await clearSegments(job.id, job.parts);
+  } catch (error) {
+    console.error("LongPage Snap: temporary image cleanup failed", error);
+  }
+}
+
 async function capture(tab) {
   const { id: tabId, windowId } = tab;
   if (!Number.isInteger(tabId) || !Number.isInteger(windowId) || jobs.has(tabId)) {
     return;
   }
 
-  const job = { cancelled: false, started: false };
+  const job = {
+    id: crypto.randomUUID(),
+    cancelled: false,
+    started: false,
+    exporting: false,
+    parts: 0,
+  };
   jobs.set(tabId, job);
 
   try {
@@ -32,7 +48,6 @@ async function capture(tab) {
 
     job.started = true;
     const page = await send(tabId, "begin");
-
     const filename = screenshotFilename(page.title);
     let targetY = 0;
     let coveredPixels = 0;
@@ -56,7 +71,7 @@ async function capture(tab) {
         quality: 95,
       });
 
-      const state = await send(tabId, "append", { image, geometry, filename });
+      const state = await send(tabId, "append", { image, geometry });
       if (!Number.isFinite(state.coveredPixels) || state.coveredPixels <= coveredPixels) {
         throw new Error("Scrolling made no progress.");
       }
@@ -74,8 +89,18 @@ async function capture(tab) {
       }
 
       if (state.complete) {
-        await send(tabId, "finalize", { filename });
-        break;
+        const { parts } = await send(tabId, "finalize");
+        if (!Number.isInteger(parts) || parts !== job.parts || parts < 1) {
+          throw new Error("Staged image count did not match the capture.");
+        }
+        job.exporting = true;
+        try {
+          await send(tabId, "complete", { filename, parts });
+        } catch (error) {
+          job.exporting = false;
+          throw error;
+        }
+        return;
       }
 
       targetY = nextScrollY(state.coveredPixels, state.scale);
@@ -87,24 +112,51 @@ async function capture(tab) {
       await send(tabId, "fail", { message }).catch(() => {});
     }
   } finally {
-    if (job.started) {
-      await send(tabId, "cleanup").catch(() => {});
+    if (!job.exporting) {
+      if (job.started) {
+        await send(tabId, "cleanup").catch(() => {});
+      }
+      await discard(tabId, job);
     }
-    jobs.delete(tabId);
   }
 }
 
 browser.runtime.onMessage.addListener((message, sender) => {
-  if (message?.scope !== SCOPE || message.type !== "cancel") {
+  if (message?.scope !== SCOPE) {
     return undefined;
   }
 
   const tabId = sender.tab?.id;
   const job = jobs.get(tabId);
-  if (job) {
-    job.cancelled = true;
+
+  switch (message.type) {
+    case "cancel":
+      if (job && !job.exporting) {
+        job.cancelled = true;
+      }
+      return Promise.resolve({ accepted: Boolean(job && !job.exporting) });
+    case "stage":
+      if (!job || job.exporting || message.index !== job.parts + 1) {
+        return Promise.reject(new Error("Unexpected image segment."));
+      }
+      return stageSegment(job.id, message.index, message.image).then(() => {
+        job.parts += 1;
+        return { stored: true };
+      });
+    case "read":
+      if (!job?.exporting || !Number.isInteger(message.index) ||
+          message.index < 1 || message.index > job.parts) {
+        return Promise.reject(new Error("Image export is unavailable."));
+      }
+      return readSegment(job.id, message.index).then((image) => ({ image }));
+    case "finish":
+      if (!job?.exporting) {
+        return Promise.resolve({ finished: false });
+      }
+      return discard(tabId, job).then(() => ({ finished: true }));
+    default:
+      return undefined;
   }
-  return Promise.resolve({ accepted: Boolean(job) });
 });
 
 browser.action.onClicked.addListener((tab) => {
