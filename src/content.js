@@ -466,16 +466,85 @@
     });
   }
 
-  function encodeJpeg(canvas) {
+  function encodeImage(canvas, settings, quality) {
+    const type = MIME[settings.format] || MIME.jpeg;
     return new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
+        if (!blob) {
+          reject(new Error("Image encoding failed."));
+        } else if (blob.type && blob.type !== type) {
+          reject(new Error("The selected image format is not supported by this Firefox version."));
         } else {
-          reject(new Error("JPEG encoding failed."));
+          resolve(blob);
         }
-      }, "image/jpeg", JPEG_QUALITY);
+      }, type, settings.format === "png" ? undefined : quality);
     });
+  }
+
+  function copyCanvasRows(canvas, offset, height) {
+    const data = canvas.getContext("2d").getImageData(0, offset, canvas.width, height);
+    const copy = document.createElement("canvas");
+    copy.width = canvas.width;
+    copy.height = height;
+    const context = copy.getContext("2d", { alpha: false });
+    if (!context) {
+      throw new Error("Cannot allocate a smaller image part.");
+    }
+    context.putImageData(data, 0, 0);
+    return copy;
+  }
+
+  async function stagePixels(writer, canvas, depth = 0) {
+    let phase = "image encoding";
+    let quality = writer.settings.quality / 100;
+    try {
+      let blob = await encodeImage(canvas, writer.settings, quality);
+      const limited = writer.settings.limits !== "dimensions";
+      const maxBytes = writer.settings.maxFileMiB * MIB;
+
+      if (limited && writer.settings.format !== "png") {
+        while (blob.size > maxBytes && quality > 0.42) {
+          quality = Math.max(0.4, quality - 0.12);
+          blob = await encodeImage(canvas, writer.settings, quality);
+        }
+      }
+
+      if (limited && blob.size > maxBytes) {
+        if (writer.settings.mode === "single") {
+          throw new Error("The single image exceeds the file-size limit. Raise the limit or select Automatic export.");
+        }
+        if (depth >= 12 || canvas.height < 32) {
+          throw new Error("The file-size limit is too small for an image part.");
+        }
+        const middle = Math.floor(canvas.height / 2);
+        const top = copyCanvasRows(canvas, 0, middle);
+        try {
+          await stagePixels(writer, top, depth + 1);
+        } finally {
+          top.width = 0;
+          top.height = 0;
+        }
+        const bottom = copyCanvasRows(canvas, middle, canvas.height - middle);
+        try {
+          await stagePixels(writer, bottom, depth + 1);
+        } finally {
+          bottom.width = 0;
+          bottom.height = 0;
+        }
+        return;
+      }
+
+      phase = "image conversion";
+      const image = await blobToDataUrl(blob);
+      phase = "temporary image storage";
+      await browser.runtime.sendMessage({
+        scope: SCOPE, type: "stage", index: writer.parts + 1, image,
+      });
+      writer.parts += 1;
+    } catch (error) {
+      const reason = typeof error?.message === "string" ? error.message : String(error);
+      throw new Error("Image " + (writer.parts + 1) + " (" + phase + "): " + reason);
+    }
   }
 
   function blobToDataUrl(blob) {
@@ -488,34 +557,14 @@
   }
 
   async function stageSegment(writer) {
-    const filled = writer.covered - writer.start;
-    if (!writer.canvas || filled <= 0) {
+    if (!writer.canvas || writer.covered <= writer.start) {
       return;
     }
-
-    const index = writer.parts + 1;
-    let phase = "JPEG encoding";
     try {
-      // On Firefox, drawing one extension-owned canvas into another can
-      // taint the destination (Bugzilla 1939291). Encode the original canvas
-      // directly, even when the last segment has a small white margin.
-      showOverlay(t("preparePart", { n: index }));
-      const blob = await encodeJpeg(writer.canvas);
-
-      phase = "JPEG conversion";
-      const image = await blobToDataUrl(blob);
-
-      phase = "temporary image storage";
-      await browser.runtime.sendMessage({
-        scope: SCOPE,
-        type: "stage",
-        index,
-        image,
-      });
-      writer.parts += 1;
-    } catch (error) {
-      const reason = typeof error?.message === "string" ? error.message : String(error);
-      throw new Error("Image " + index + " (" + phase + "): " + reason);
+      // Avoid drawing a canvas into a second canvas: Firefox can taint that
+      // copy. A short final segment may have a small white bottom margin.
+      showOverlay(t("preparePart", { n: writer.parts + 1 }));
+      await stagePixels(writer, writer.canvas);
     } finally {
       writer.canvas.width = 0;
       writer.canvas.height = 0;
@@ -684,7 +733,7 @@
         : "-part-" + String(index).padStart(3, "0");
       const anchor = document.createElement("a");
       anchor.href = image;
-      anchor.download = state.filename.replace(/\.jpg$/i, suffix + ".jpg");
+      anchor.download = state.filename.replace(/\.(jpg|png|webp)$/i, (_match, ext) => suffix + "." + ext);
       anchor.style.display = "none";
       document.documentElement.append(anchor);
       try {
