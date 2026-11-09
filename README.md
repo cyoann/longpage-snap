@@ -1,50 +1,68 @@
 # LongPage Snap
 
-Lightweight page screenshots for Firefox on Android.
+Lightweight full-page screenshots for Firefox on Android.
 
 One tap. The whole page.
 
 ## Status
 
-**Android compatibility probe.** The current implementation captures the visible viewport as a JPEG, attempts a local download through an HTML anchor, and cleans up its interaction overlay. Full-page scrolling and stitching are **not implemented yet**.
+**Development preview (0.2.0).** Viewport capture and Android JPEG download have been verified on a device. The full-page capture pipeline has automated tests but still requires Android integration testing.
 
-## Requirements
+## Features
 
-- Node.js 22 or later
-- Firefox for Android 142 or later
-- Android Platform Tools (ADB) for on-device testing
+- Single-tap capture from the Firefox extension action
+- Sequential scrolling with render-state synchronization and lazy-image checks
+- Deduplication of previously captured fixed and pinned sticky elements
+- JPEG stitching with an adaptive per-canvas memory budget
+- Automatic numbered JPEG parts when a page exceeds the canvas budget
+- Capture cancellation and restoration of the original scroll position
+
+Screenshots are processed and saved locally. No analytics, tracking, or external services.
 
 ## Development
+
+Requires Node.js 22.13 or later and Android Platform Tools (ADB).
 
 ```sh
 npm install
 npm run check
 npm test
 npm run lint
+npx web-ext lint
 ```
 
-Load the extension temporarily on a connected Android device:
+## Android test
+
+Enable USB debugging and **Remote debugging via USB** in Firefox's Developer Tools settings. Connect the device, then run:
 
 ```sh
 adb devices
-npx web-ext run --target=firefox-android --firefox-apk=org.mozilla.firefox
+npx web-ext run --target=firefox-android --android-device=DEVICE_SERIAL --firefox-apk=org.mozilla.firefox
 ```
 
-Use `org.mozilla.fenix` for Nightly or `org.mozilla.firefox_beta` for Beta. Enable USB debugging and Firefox's remote debugging option. See [Mozilla's Android extension guide](https://extensionworkshop.com/documentation/develop/developing-extensions-for-firefox-for-android/).
+Use `org.mozilla.fenix` for Nightly or `org.mozilla.firefox_beta` for Beta.
 
-## Device validation
+Open an HTTPS page with content extending below the viewport and tap **LongPage Snap** from Firefox's extension menu. Confirm that the extension scrolls, that the downloaded JPEG contains the entire finite page, and that Firefox returns to the original scroll position. A long page may produce files ending in `-part-001.jpg`, `-part-002.jpg`, etc.
 
-1. Open a regular HTTPS page in Firefox for Android.
-2. Trigger **LongPage Snap** from the extension action.
-3. Confirm that the overlay appears briefly and that the webpage remains unchanged afterward.
-4. Check Android Downloads for a JPEG named `longpage-snap-*.jpg`.
-5. Record the Firefox version, Android version, whether the download succeeded, and any browser console errors.
+Verify the result on a normal article, an image-heavy page, and a page with a fixed navigation bar. Check image alignment and gaps at viewport boundaries.
 
-A successful `anchor.click()` call does **not** prove the download completed. The export path remains unverified until a real-device test passes.
+## Implementation
 
-## Privacy
+The background event page coordinates capture with `browser.tabs.captureVisibleTab()`. An injected content controller scrolls the page, waits for stable geometry and visible image completion, and composites each frame.
 
-Screenshots stay on the device. The extension makes no network requests and collects no data.
+The output canvas uses a conservative 8–24 MiB pixel budget, taking `navigator.deviceMemory` into account when available. Segment height is calculated from the actual screenshot width. Canvas allocation is probed and reduced on failure; page height itself is not capped.
+
+Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and converted to data URLs for the Android download path validated in the initial prototype.
+
+## Limitations
+
+- Only the top-level document's vertical scroll is captured. Nested scrolling containers and horizontal overflow are not supported.
+- Sticky detection is heuristic. Complex layouts, canvas animations, video, and content that changes while scrolling may produce artifacts.
+- Lazy-loaded assets that never settle are bounded by an adaptive deadline; some may be omitted.
+- Endless feeds are stopped after sustained growth rather than captured indefinitely.
+- Multiple downloads may be subject to browser prompts or restrictions.
+- A programmatic save attempt does not prove that Android completed every download. Confirm the files in Downloads.
+- Temporary extensions are removed when the `web-ext` debugging session ends.
 
 ## License
 
