@@ -424,35 +424,30 @@
       return;
     }
 
-    let source = writer.canvas;
+    const index = writer.parts + 1;
+    let phase = "JPEG encoding";
     try {
-      if (filled < source.height) {
-        const cropped = document.createElement("canvas");
-        cropped.width = source.width;
-        cropped.height = filled;
-        const context = cropped.getContext("2d", { alpha: false });
-        if (!context) {
-          throw new Error("Unable to crop final segment.");
-        }
-        context.drawImage(source, 0, 0);
-        source = cropped;
-      }
+      // On Firefox, drawing one extension-owned canvas into another can
+      // taint the destination (Bugzilla 1939291). Encode the original canvas
+      // directly, even when the last segment has a small white margin.
+      showOverlay("Preparing image " + index + "…");
+      const blob = await encodeJpeg(writer.canvas);
 
-      showOverlay("Preparing image " + (writer.parts + 1) + "…");
-      const blob = await encodeJpeg(source);
+      phase = "JPEG conversion";
       const image = await blobToDataUrl(blob);
+
+      phase = "temporary image storage";
       await browser.runtime.sendMessage({
         scope: SCOPE,
         type: "stage",
-        index: writer.parts + 1,
+        index,
         image,
       });
       writer.parts += 1;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new Error("Image " + index + " (" + phase + "): " + reason);
     } finally {
-      if (source !== writer.canvas) {
-        source.width = 0;
-        source.height = 0;
-      }
       writer.canvas.width = 0;
       writer.canvas.height = 0;
       writer.canvas = null;
