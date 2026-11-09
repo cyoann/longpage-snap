@@ -73,11 +73,13 @@ export function chooseOutputScale({
 
   let scale = Math.min(sourceScale, maxWidth / pageWidth);
   if (single) {
+    // Match the capture controller's capacity reserve for lazy-loaded growth.
+    const reserve = 1.3;
     scale = Math.min(
       scale,
-      maxHeight / pageHeight,
-      16384 / pageHeight,
-      Math.sqrt(memoryBudgetBytes / (4 * pageWidth * pageHeight)),
+      maxHeight / (pageHeight * reserve),
+      16384 / (pageHeight * reserve),
+      Math.sqrt(memoryBudgetBytes / (4 * pageWidth * pageHeight * reserve)),
     );
     if (Math.floor(pageWidth * scale) < 240) {
       throw new RangeError(
@@ -86,13 +88,12 @@ export function chooseOutputScale({
     }
   }
   const width = Math.max(1, Math.floor(pageWidth * scale));
+  const safeHeight = Math.min(
+    maxHeight, 16384, Math.floor(memoryBudgetBytes / (4 * width)),
+  );
   const segmentMaxHeight = single
-    ? Math.ceil(pageHeight * scale)
-    : Math.min(
-      maxHeight,
-      16384,
-      Math.floor(memoryBudgetBytes / (4 * width)),
-    );
+    ? Math.min(safeHeight, Math.ceil(pageHeight * scale * 1.3))
+    : safeHeight;
 
   if (segmentMaxHeight < 1) {
     throw new RangeError("Canvas memory limit exceeded.");
