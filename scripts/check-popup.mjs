@@ -2,7 +2,8 @@
 // design-taste-frontend mobile panel checker: only the user-approved 390px scale.
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve, extname, join, sep } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -74,58 +75,132 @@ const server = createServer((request, response) => {
 await new Promise((done) => server.listen(0, "127.0.0.1", done));
 const port = server.address().port;
 
-async function run(kind, screenshot) {
-  const url = "http://127.0.0.1:" + port + "/__" + kind;
-  const cmd = [
-    "--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
-    "--no-first-run", "--hide-scrollbars",
-    "--force-device-scale-factor=1", "--window-size=390,844",
-    "--virtual-time-budget=2500",
-    "--user-data-dir=" + join(output, "chrome-" + kind),
-    screenshot ? "--screenshot=" + join(output, kind + "-390.png") : "--dump-dom",
-    url,
-  ];
-  return new Promise((done, fail) => {
-    const child = spawn(chrome, cmd, {stdio:["ignore","pipe","pipe"]});
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => { stdout += chunk; });
-    child.stderr.on("data", (chunk) => { stderr += chunk; });
-    const timeout = setTimeout(() => child.kill(), 45000);
-    child.on("error", fail);
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (code !== 0) {
-        fail(new Error("Chrome exited " + code + ": " + stderr.slice(-600)));
-      } else {
-        done(stdout);
-      }
-    });
+
+// Chrome --window-size has a 500px minimum in headless mode.
+// CDP Emulation.setDeviceMetricsOverride makes the tested viewport exactly 390px.
+const pause = (ms) => new Promise((done) => setTimeout(done, ms));
+const profile = mkdtempSync(join(tmpdir(), "longpage-chrome-"));
+const child = spawn(chrome, [
+  "--headless=new", "--no-sandbox", "--disable-dev-shm-usage",
+  "--no-first-run", "--no-default-browser-check",
+  "--remote-debugging-port=0", "--remote-allow-origins=*",
+  "--user-data-dir=" + profile, "about:blank",
+], { stdio:["ignore","ignore","pipe"] });
+
+let chromeError = "";
+child.stderr.setEncoding("utf8");
+child.stderr.on("data", (chunk) => { chromeError += chunk.slice(-500); });
+
+async function connect() {
+  const portFile = join(profile, "DevToolsActivePort");
+  let port;
+  for (let i = 0; i < 150; i += 1) {
+    if (existsSync(portFile)) {
+      port = Number(readFileSync(portFile, "utf8").split("\n")[0]);
+      break;
+    }
+    if (child.exitCode !== null) {
+      throw new Error("Chrome exited before debugger startup: " + chromeError);
+    }
+    await pause(100);
+  }
+  if (!port) {
+    throw new Error("Chrome DevTools did not start.");
+  }
+
+  const response = await fetch("http://127.0.0.1:" + port + "/json/list");
+  const targets = await response.json();
+  const target = targets.find((item) => item.type === "page");
+  if (!target) {
+    throw new Error("No Chrome page target.");
+  }
+
+  const socket = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((done, fail) => {
+    socket.addEventListener("open", done, { once:true });
+    socket.addEventListener("error", fail, { once:true });
   });
+
+  const pending = new Map();
+  let serial = 0;
+  socket.addEventListener("message", (event) => {
+    const message = JSON.parse(event.data);
+    if (!message.id || !pending.has(message.id)) {
+      return;
+    }
+    const { done, fail, timer } = pending.get(message.id);
+    clearTimeout(timer);
+    pending.delete(message.id);
+    if (message.error) {
+      fail(new Error(message.error.message));
+    } else {
+      done(message.result);
+    }
+  });
+
+  function command(method, params = {}) {
+    return new Promise((done, fail) => {
+      const id = ++serial;
+      const timer = setTimeout(() => {
+        pending.delete(id);
+        fail(new Error("Chrome DevTools timed out: " + method));
+      }, 12000);
+      pending.set(id, { done, fail, timer });
+      socket.send(JSON.stringify({ id, method, params }));
+    });
+  }
+  await command("Page.enable");
+  await command("Runtime.enable");
+  await command("Emulation.setDeviceMetricsOverride", {
+    width:390, height:844, deviceScaleFactor:1, mobile:true,
+  });
+  return { socket, command };
 }
 
 let failed = false;
+let client;
 try {
+  client = await connect();
   for (const kind of ["options","panel"]) {
-    const html = await run(kind, false);
-    const match = html.match(/data-check-result="([^"]+)"/);
-    if (!match) {
-      console.error("FAIL " + kind + ": Chrome did not return inspection metrics");
+    const url = "http://127.0.0.1:" + port + "/__" + kind;
+    await client.command("Page.navigate", { url });
+    const expected = "/__" + kind;
+    let result;
+    for (let attempt = 0; attempt < 85; attempt += 1) {
+      const evaluation = await client.command("Runtime.evaluate", {
+        expression: "location.pathname === " + JSON.stringify(expected) +
+          " ? (document.documentElement.dataset.checkResult || '') : ''",
+        returnByValue:true,
+      });
+      const encoded = evaluation.result?.value;
+      if (encoded) {
+        result = JSON.parse(decodeURIComponent(encoded));
+        break;
+      }
+      await pause(150);
+    }
+    if (!result) {
+      console.error("FAIL " + kind + ": inspection script did not complete");
       failed = true;
       continue;
     }
-    const result = JSON.parse(decodeURIComponent(match[1]));
-    await run(kind, true);
-    console.log((result.passed ? "PASS " : "FAIL ") + "390px " +
-      kind + " " + JSON.stringify(result));
+
+    const picture = await client.command("Page.captureScreenshot", {
+      format:"png", fromSurface:true, captureBeyondViewport:false,
+    });
+    writeFileSync(join(output, kind + "-390.png"), Buffer.from(picture.data, "base64"));
+    console.log((result.passed ? "PASS " : "FAIL ") +
+      "390px " + kind + " " + JSON.stringify(result));
     failed ||= !result.passed;
   }
   console.log("WAIVER: " + waiver.waived.map((entry) => entry.check).join("; "));
   console.log("VISUALS: " + output);
 } finally {
+  client?.socket.close();
+  child.kill();
   server.close();
+  await pause(300);
+  rmSync(profile, { recursive:true, force:true });
 }
 if (failed) {
   process.exitCode = 1;
