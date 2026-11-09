@@ -1,0 +1,182 @@
+{
+  "extensionName": {
+    "message": "LongPage Snap"
+  },
+  "extensionDescription": {
+    "message": "Captures légères de pages web complètes pour Firefox sur Android."
+  },
+  "actionCapture": {
+    "message": "Capturer toute la page"
+  },
+  "settingsTitle": {
+    "message": "Paramètres"
+  },
+  "settingsSubtitle": {
+    "message": "Personnalisez l’exportation des captures de pages."
+  },
+  "settingsOpen": {
+    "message": "Paramètres"
+  },
+  "sectionFormat": {
+    "message": "Format de l’image"
+  },
+  "sectionFormatHint": {
+    "message": "Choisissez le format des images téléchargées."
+  },
+  "formatLabel": {
+    "message": "Format"
+  },
+  "formatJpeg": {
+    "message": "JPEG · fichiers légers"
+  },
+  "formatPng": {
+    "message": "PNG · sans perte"
+  },
+  "formatWebp": {
+    "message": "WebP · efficace"
+  },
+  "qualityLabel": {
+    "message": "Qualité de l’image"
+  },
+  "qualityHint": {
+    "message": "Pour JPEG et WebP. Le PNG reste sans perte."
+  },
+  "sectionMode": {
+    "message": "Exportation"
+  },
+  "sectionModeHint": {
+    "message": "Une image unique est réduite si nécessaire pour respecter les limites de mémoire et de canevas de l’appareil."
+  },
+  "modeLabel": {
+    "message": "Mode d’exportation"
+  },
+  "modeAutomatic": {
+    "message": "Automatique · découper si nécessaire"
+  },
+  "modeSingle": {
+    "message": "Image unique · adapter à l’appareil"
+  },
+  "modeSplit": {
+    "message": "Plusieurs images · selon les limites"
+  },
+  "limitsLabel": {
+    "message": "Limiter les images selon"
+  },
+  "limitsDimensions": {
+    "message": "Dimensions maximales"
+  },
+  "limitsFileSize": {
+    "message": "Taille maximale du fichier"
+  },
+  "limitsBoth": {
+    "message": "Dimensions et taille du fichier"
+  },
+  "maxWidthLabel": {
+    "message": "Largeur maximale (px)"
+  },
+  "maxHeightLabel": {
+    "message": "Hauteur maximale (px)"
+  },
+  "maxFileLabel": {
+    "message": "Taille maximale (Mio)"
+  },
+  "singleWarning": {
+    "message": "L’export en image unique peut réduire la résolution des longues pages. Si l’image devient illisible, la capture s’arrête sans la découper."
+  },
+  "splitInfo": {
+    "message": "La taille des fichiers est vérifiée après encodage. Les grandes parties peuvent être recoupées. Firefox peut demander une confirmation pour chaque fichier."
+  },
+  "saveSettings": {
+    "message": "Enregistrer les paramètres"
+  },
+  "resetSettings": {
+    "message": "Valeurs par défaut"
+  },
+  "savedSettings": {
+    "message": "Paramètres enregistrés. Ils s’appliqueront à la prochaine capture."
+  },
+  "settingsError": {
+    "message": "Impossible d’enregistrer les paramètres."
+  },
+  "privacyNote": {
+    "message": "Traitement local. Aucun envoi, suivi ou analyse."
+  },
+  "captureTitle": {
+    "message": "Capture en cours"
+  },
+  "captureSubtitle": {
+    "message": "Gardez cet onglet ouvert."
+  },
+  "captureProgress": {
+    "message": "Capture · {n} %"
+  },
+  "preparePart": {
+    "message": "Préparation de l’image {n}…"
+  },
+  "captureDone": {
+    "message": "Capture terminée"
+  },
+  "captureSingle": {
+    "message": "Votre capture est prête."
+  },
+  "captureMultiple": {
+    "message": "{n} images sont prêtes. Enregistrez-les toutes pour conserver la page entière."
+  },
+  "savePart": {
+    "message": "Enregistrer l’image {n} sur {total}"
+  },
+  "saveSingle": {
+    "message": "Enregistrer l’image"
+  },
+  "saveNext": {
+    "message": "Image suivante"
+  },
+  "saveComplete": {
+    "message": "Téléchargements demandés"
+  },
+  "saveCompleteHint": {
+    "message": "Confirmez les demandes de Firefox et vérifiez les téléchargements."
+  },
+  "requestPart": {
+    "message": "Demande de l’image {n} sur {total}…"
+  },
+  "requestPartNext": {
+    "message": "Image {n} sur {total} demandée. Confirmez la boîte de dialogue Firefox avant de poursuivre."
+  },
+  "discard": {
+    "message": "Supprimer la capture"
+  },
+  "cancel": {
+    "message": "Annuler la capture"
+  },
+  "close": {
+    "message": "Fermer"
+  },
+  "finishExport": {
+    "message": "Terminé"
+  },
+  "captureError": {
+    "message": "Capture arrêtée : {error}"
+  },
+  "exportNote": {
+    "message": "Cette page est traitée localement."
+  },
+  "exportWarning": {
+    "message": "Fermer maintenant supprime les parties non enregistrées."
+  },
+  "capturingLabel": {
+    "message": "Capture"
+  },
+  "exportingLabel": {
+    "message": "Prêt à exporter"
+  },
+  "savingLabel": {
+    "message": "Enregistrement"
+  },
+  "capturedPart": {
+    "message": "Partie {n} sur {total}"
+  },
+  "backSettings": {
+    "message": "Retour à Firefox"
+  }
+}
