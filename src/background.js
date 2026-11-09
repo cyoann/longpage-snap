@@ -30,8 +30,8 @@ async function capture(tab) {
       files: ["src/content.js"],
     });
 
-    const page = await send(tabId, "begin");
     job.started = true;
+    const page = await send(tabId, "begin");
 
     const filename = screenshotFilename(page.title);
     let targetY = 0;
