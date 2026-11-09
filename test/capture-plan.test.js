@@ -6,6 +6,12 @@ test("scroll position overlaps the preceding frame", () => {
   assert.equal(nextScrollY(1950, 3), 648);
 });
 
+test("Android frame scheduling keeps enough overlap for pixel registration", () => {
+  assert.equal(nextScrollY(1950, 3, 600), 512);
+  assert.equal(nextScrollY(200, 2, 100), 77);
+  assert.equal(nextScrollY(20, 2, 100), 0);
+});
+
 test("scroll positions do not underflow", () => {
   assert.equal(nextScrollY(1, 3), 0);
 });

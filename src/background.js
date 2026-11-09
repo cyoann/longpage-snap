@@ -54,7 +54,7 @@ async function capture(tab) {
     await recordExport(job.id, tabId, 0);
     await browser.scripting.executeScript({
       target: { tabId },
-      files: ["src/locales.js", "src/content.js"],
+      files: ["src/locales.js", "src/frame-registration.js", "src/content.js"],
     });
 
     const preferences = await browser.storage.local.get("settings");
@@ -140,7 +140,7 @@ async function capture(tab) {
         return;
       }
 
-      targetY = nextScrollY(state.coveredPixels, state.scale);
+      targetY = nextScrollY(state.coveredPixels, state.scale, geometry.height);
     }
   } catch (error) {
     // User-initiated cancellation is not an error and should close the panel.

@@ -38,7 +38,9 @@
       atScrollEnd: scrollY >= maxScrollY - 1,
       width: viewport?.width ?? window.innerWidth,
       height: viewport?.height ?? window.innerHeight,
-      pageHeight: Math.max(
+      // A temporary end spacer extends the scroll range, but its blank
+      // area is NOT part of the requested screenshot.
+      pageHeight: session?.endRecovery?.pageHeight ?? Math.max(
         root.scrollHeight,
         root.offsetHeight,
         body?.scrollHeight ?? 0,
@@ -427,6 +429,7 @@
       mutations: 0,
       lastSettlingMs: 0,
       writer: null,
+      endRecovery: null,
       settings: { ...DEFAULT_OPTIONS, ...settings },
       failed: false,
       restored: false,
@@ -471,6 +474,32 @@
     hideOverlay();
     await nextPaint();
     return geometry;
+  }
+
+  function extendBottomCapture(remainingPixels, scale, pageHeight, viewportHeight) {
+    if (session.endRecovery || !document.body) {
+      throw new Error("Unable to recover the missing bottom of the page.");
+    }
+    // Firefox Android's screenshot can be shorter than the document's layout
+    // viewport. At the normal scroll limit the last content is then below
+    // the captured pixels. Temporarily extend scrolling past the original
+    // bottom, but keep the original pageHeight for stitching and crop.
+    const missingHeight = Math.ceil(remainingPixels / scale);
+    const safety = 64;
+    if (!Number.isFinite(missingHeight) || missingHeight < 1 ||
+        missingHeight > Math.max(1024, viewportHeight * 2)) {
+      throw new Error("The remaining page content could not be reached safely.");
+    }
+    const spacer = document.createElement("div");
+    spacer.setAttribute("aria-hidden", "true");
+    spacer.setAttribute("data-longpage-snap-end-spacer", "true");
+    spacer.style.setProperty("height", (missingHeight + safety) + "px", "important");
+    spacer.style.setProperty("min-height", (missingHeight + safety) + "px", "important");
+    spacer.style.setProperty("width", "1px", "important");
+    spacer.style.setProperty("visibility", "hidden", "important");
+    spacer.style.setProperty("pointer-events", "none", "important");
+    document.body.append(spacer);
+    session.endRecovery = { spacer, pageHeight };
   }
 
   function memoryBudget() {
@@ -696,6 +725,65 @@
     }
   }
 
+  function alignScreenshotFrame(image, writer, nominalTop) {
+    const registration = globalThis.LongPageSnapFrameRegistration;
+    if (!registration || !writer.canvas || !writer.context ||
+        writer.width > 1200 || writer.covered - nominalTop < 20) {
+      return nominalTop;
+    }
+
+    // The probe contains only the first few rows of the NEW bitmap.
+    // We never copy one canvas into another: Firefox Android can throw a
+    // SecurityError when a canvas is used as a drawImage source.
+    const nextHeight = Math.min(
+      360,
+      Math.floor(image.naturalHeight * writer.scale / writer.sourceScale),
+    );
+    const previousTop = Math.max(writer.start, writer.covered - 210);
+    if (nextHeight < 32 || writer.covered - previousTop < 20) {
+      return nominalTop;
+    }
+    const probe = document.createElement("canvas");
+    try {
+      probe.width = writer.width;
+      probe.height = nextHeight;
+      const ctx = probe.getContext("2d", { alpha: false });
+      if (!ctx) {
+        return nominalTop;
+      }
+      ctx.drawImage(
+        image, 0, 0, image.naturalWidth,
+        nextHeight * writer.sourceScale / writer.scale,
+        0, 0, writer.width, nextHeight,
+      );
+      const previousPixels = writer.context.getImageData(
+        0, previousTop - writer.start,
+        writer.width, writer.covered - previousTop,
+      ).data;
+      const nextPixels = ctx.getImageData(0, 0, writer.width, nextHeight).data;
+      const match = registration.alignFramePixels({
+        previousPixels, previousTop, covered: writer.covered,
+        nextPixels, nextHeight, width: writer.width,
+        nominalTop, maxShift: 88,
+      });
+      if (match.confidence === "matched") {
+        console.info(
+          "LongPage Snap: corrected frame alignment by " +
+          match.delta + " output pixels.",
+        );
+      }
+      return nominalTop + match.delta;
+    } catch (error) {
+      // Pixel inspection can fail on protected pages. Keep the existing
+      // geometry-based method instead of aborting a valid capture.
+      console.warn("LongPage Snap: frame registration skipped", error);
+      return nominalTop;
+    } finally {
+      probe.width = 0;
+      probe.height = 0;
+    }
+  }
+
   async function append(imageUrl, geometry) {
     if (!session) {
       throw new Error("Capture session is not active.");
@@ -746,7 +834,8 @@
       throw new Error("Viewport width changed during capture.");
     }
 
-    const top = Math.round(geometry.top * writer.scale);
+    const nominalTop = Math.round(geometry.top * writer.scale);
+    const top = alignScreenshotFrame(image, writer, nominalTop);
     const pagePixels = Math.ceil(measure().pageHeight * writer.scale);
     const end = Math.min(pagePixels, top + Math.floor(image.naturalHeight * writer.scale / writer.sourceScale));
     if (top > writer.covered + 2) {
@@ -784,14 +873,27 @@
     const progress = Math.min(100, Math.floor(100 * writer.covered / pagePixels));
     showOverlay(t("captureProgress", { n: progress }));
 
+    const remainingPixels = Math.max(0, pagePixels - writer.covered);
+    // The scroll boundary is not proof of full screenshot coverage:
+    // Android's captured viewport can be shorter than clientHeight.
+    if (geometry.atScrollEnd && remainingPixels > 2) {
+      if (session.endRecovery) {
+        throw new Error(
+          "The final section is outside Firefox's captured viewport. " +
+          "The image was not exported as complete.",
+        );
+      }
+      extendBottomCapture(
+        remainingPixels, writer.scale, measure().pageHeight, geometry.height,
+      );
+    }
+
     return {
       coveredPixels: writer.covered,
       scale: writer.scale,
       pageHeight: pagePixels / writer.scale,
-      // Firefox Android may expose less of the document in a screenshot than
-      // the layout viewport can scroll. The scroll extent is authoritative.
-      complete: writer.covered >= pagePixels || geometry.atScrollEnd,
-      remainingPixels: Math.max(0, pagePixels - writer.covered),
+      complete: remainingPixels <= 2,
+      remainingPixels,
     };
   }
 
@@ -811,6 +913,10 @@
       return;
     }
     session.observer?.disconnect();
+    if (session.endRecovery) {
+      session.endRecovery.spacer.remove();
+      session.endRecovery = null;
+    }
     restoreSuppressedElements();
     restoreStyles();
     window.scrollTo(session.originalX, session.originalY);
