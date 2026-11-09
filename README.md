@@ -53,7 +53,7 @@ The background event page coordinates capture with `browser.tabs.captureVisibleT
 
 The output canvas uses a conservative 8–24 MiB pixel budget, taking `navigator.deviceMemory` into account when available. Segment height is calculated from the actual screenshot width. Canvas allocation is probed and reduced on failure; page height itself is not capped.
 
-Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and staged in extension-owned IndexedDB storage. After scrolling finishes, the output is downloaded through the Android-compatible data URL mechanism verified in the initial prototype. Captured segments are cleared when the export is dismissed.
+Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and staged in extension-owned IndexedDB storage. After scrolling finishes, the output is downloaded through the Android-compatible data URL mechanism verified in the initial prototype. Captured segments are cleared when the export is dismissed or the tab navigates away. Abandoned export sessions expire after two hours and are pruned when capture next starts.
 
 ## Limitations
 
