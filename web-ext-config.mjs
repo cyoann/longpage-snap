@@ -1,6 +1,8 @@
 export default {
   ignoreFiles: [
     "test/**",
+    "scripts/**",
+    ".mobile-check/**",
     "README.md",
     "LICENSE",
     "package*.json",
