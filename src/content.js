@@ -725,6 +725,65 @@
     }
   }
 
+  function alignScreenshotFrame(image, writer, nominalTop) {
+    const registration = globalThis.LongPageSnapFrameRegistration;
+    if (!registration || !writer.canvas || !writer.context ||
+        writer.width > 1200 || writer.covered - nominalTop < 20) {
+      return nominalTop;
+    }
+
+    // The probe contains only the first few rows of the NEW bitmap.
+    // We never copy one canvas into another: Firefox Android can throw a
+    // SecurityError when a canvas is used as a drawImage source.
+    const nextHeight = Math.min(
+      360,
+      Math.floor(image.naturalHeight * writer.scale / writer.sourceScale),
+    );
+    const previousTop = Math.max(writer.start, writer.covered - 210);
+    if (nextHeight < 32 || writer.covered - previousTop < 20) {
+      return nominalTop;
+    }
+    const probe = document.createElement("canvas");
+    try {
+      probe.width = writer.width;
+      probe.height = nextHeight;
+      const ctx = probe.getContext("2d", { alpha: false });
+      if (!ctx) {
+        return nominalTop;
+      }
+      ctx.drawImage(
+        image, 0, 0, image.naturalWidth,
+        nextHeight * writer.sourceScale / writer.scale,
+        0, 0, writer.width, nextHeight,
+      );
+      const previousPixels = writer.context.getImageData(
+        0, previousTop - writer.start,
+        writer.width, writer.covered - previousTop,
+      ).data;
+      const nextPixels = ctx.getImageData(0, 0, writer.width, nextHeight).data;
+      const match = registration.alignFramePixels({
+        previousPixels, previousTop, covered: writer.covered,
+        nextPixels, nextHeight, width: writer.width,
+        nominalTop, maxShift: 88,
+      });
+      if (match.confidence === "matched") {
+        console.info(
+          "LongPage Snap: corrected frame alignment by " +
+          match.delta + " output pixels.",
+        );
+      }
+      return nominalTop + match.delta;
+    } catch (error) {
+      // Pixel inspection can fail on protected pages. Keep the existing
+      // geometry-based method instead of aborting a valid capture.
+      console.warn("LongPage Snap: frame registration skipped", error);
+      return nominalTop;
+    } finally {
+      probe.width = 0;
+      probe.height = 0;
+    }
+  }
+
   async function append(imageUrl, geometry) {
     if (!session) {
       throw new Error("Capture session is not active.");
@@ -775,7 +834,8 @@
       throw new Error("Viewport width changed during capture.");
     }
 
-    const top = Math.round(geometry.top * writer.scale);
+    const nominalTop = Math.round(geometry.top * writer.scale);
+    const top = alignScreenshotFrame(image, writer, nominalTop);
     const pagePixels = Math.ceil(measure().pageHeight * writer.scale);
     const end = Math.min(pagePixels, top + Math.floor(image.naturalHeight * writer.scale / writer.sourceScale));
     if (top > writer.covered + 2) {
