@@ -14,7 +14,10 @@
     i18n: { getUILanguage: () => "en-US" },
     storage: { local: {
       get: async () => ({ settings }),
-      set: async () => {},
+      set: async ({ settings: next }) => {
+        Object.assign(settings, next);
+        window.__lastSavedSettings = { ...settings };
+      },
     } },
     runtime: {
       onMessage: { addListener(callback) { window.captureMessage = callback; } },
