@@ -51,7 +51,7 @@ async function transact(storeName, mode, operation) {
 
 export async function stageSegment(jobId, index, dataUrl) {
   if (!Number.isInteger(index) || index < 1 ||
-      typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/jpeg;base64,")) {
+      typeof dataUrl !== "string" || !/^data:image\/(?:jpeg|png|webp);base64,/.test(dataUrl)) {
     throw new TypeError("Invalid JPEG segment.");
   }
   await transact(SEGMENTS, "readwrite", (store) => store.put(dataUrl, segmentKey(jobId, index)));
