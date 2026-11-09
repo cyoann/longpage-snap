@@ -2,27 +2,26 @@
 
 Lightweight full-page screenshots for Firefox on Android.
 
-One tap. The whole page.
+**One tap. The whole page.**
 
 ## Status
 
-**Development preview (0.2.3).** Full-page scrolling, JPEG stitching and Android download have been verified on a device. The deferred multipart download workflow requires device testing.
+**Development preview 0.3.0.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
 
 ## Features
 
-- Single-tap capture from the Firefox extension action
-- Sequential scrolling with render-state synchronization, lazy-image checks, and Android scroll-boundary detection
-- Deduplication of previously captured fixed and pinned sticky elements
-- JPEG stitching with an adaptive per-canvas memory budget
-- Automatic numbered JPEG parts when a page exceeds the canvas budget
-- No save prompts while scrolling; multipart exports are presented after capture with labeled save actions
-- Capture cancellation and restoration of the original scroll position
+- **Capture:** one-tap full-page scrolling and stitching, with lazy-image synchronization and duplicate sticky-element suppression
+- **Export:** JPEG, PNG, or WebP (subject to browser encoder availability); adjustable JPEG/WebP quality
+- **Mode:** Automatic (split only when necessary), Single image (downscale to fit), or Multiple images (split at the configured limits)
+- **Limits:** maximum image dimensions, maximum actual encoded file size, or both
+- **Accessibility:** responsive capture dialog with progress, prominent download actions, separated destructive controls, and dark/light system themes
+- **Languages:** English and French via Firefox WebExtensions `_locales` and `browser.i18n`; follows Firefox's UI language
+- **Settings:** local, persistent options page; accessible through the Firefox add-on settings or the capture dialog
+- **Privacy:** no uploads, network services, analytics, or tracking
 
-Screenshots are processed and saved locally. No analytics, tracking, or external services.
+## Install for development
 
-## Development
-
-Requires Node.js 22.13 or later and Android Platform Tools (ADB).
+Requirements: Node.js 22.13+, Android Platform Tools, and Firefox Android 142+.
 
 ```sh
 npm install
@@ -32,42 +31,50 @@ npm run lint
 npx web-ext lint
 ```
 
-## Android test
-
-Enable USB debugging and **Remote debugging via USB** in Firefox's Developer Tools settings. Connect the device, then run:
+Enable USB debugging on Android and **Remote debugging via USB** in Firefox's Developer Tools settings:
 
 ```sh
 adb devices
 npx web-ext run --target=firefox-android --android-device=DEVICE_SERIAL --firefox-apk=org.mozilla.firefox
 ```
 
-Use `org.mozilla.fenix` for Nightly or `org.mozilla.firefox_beta` for Beta.
+For Firefox Nightly, use `org.mozilla.fenix`; for Beta, `org.mozilla.firefox_beta`. The temporary add-on is removed when the debugging session ends.
 
-Open an HTTPS page with content extending below the viewport and tap **LongPage Snap** from Firefox's extension menu. Confirm that the extension scrolls, that the downloaded JPEG contains the entire finite page, and that Firefox returns to the original scroll position. A long page may produce files ending in `-part-001.jpg`, `-part-002.jpg`, etc. Once scrolling finishes, the page returns to its original position and shows **Save image 1 of N**. Confirm Firefox's save dialog, then tap **Save image 2 of N** to export the next part. Single-image captures save automatically.
+## Using settings
 
-Verify the result on a normal article, an image-heavy page, and a page with a fixed navigation bar. On Firefox Android, the visible screenshot viewport can be shorter than the layout viewport; capture ends at the actual scroll boundary rather than retrying a position that cannot be reached. Check image alignment and gaps at viewport boundaries.
+Open Firefox's Add-ons manager, select LongPage Snap, and choose **Settings**. The capture panel also contains a Settings link.
 
-## Implementation
+| Setting | Behavior |
+| --- | --- |
+| JPEG | Lossy compression; adjustable quality |
+| PNG | Lossless viewport capture and PNG encoding; quality slider disabled |
+| WebP | WebP output when supported by Firefox; adjustable quality |
+| Automatic | Use configured limits and hardware memory budget, split only when needed |
+| Single image | Downscale the entire finite page to fit one safe canvas, preserving content order |
+| Multiple images | Cut at the configured dimensions and/or encoded file-size limits |
+| Maximum dimensions | Constrain width and height in pixels |
+| Maximum file size | Re-encode at lower quality where applicable, then split oversized images based on **actual Blob size** |
 
-The background event page coordinates capture with `browser.tabs.captureVisibleTab()`. An injected content controller scrolls the page, waits for stable geometry and visible image completion, and composites each frame.
+**Single-image limitations:** One image cannot have unlimited dimensions. Long pages may need significant downscaling. If the resulting width would be too small to read, or a single JPEG cannot meet the selected file-size limit, capture stops with an explanation rather than silently changing to multipart output. For long pages where fidelity matters, use Automatic or Multiple images.
 
-The output canvas uses a conservative 8–24 MiB pixel budget, taking `navigator.deviceMemory` into account when available. Segment height is calculated from the actual screenshot width. Canvas allocation is probed and reduced on failure; page height itself is not capped.
+**Multipart exports:** No native download prompt appears before capture is complete. After scrolling, the extension restores the original page position and presents **Save image 1 of N**, followed by separately labeled actions for the remaining parts. Confirm Firefox's native download dialogs as needed. Every part is required to reconstruct the entire page.
 
-For Firefox compatibility, JPEG segments are encoded directly from their source canvas; the final segment can include a small white bottom margin when the Android scroll boundary precedes the document's reported height. This avoids Firefox's canvas-to-canvas security error (Bugzilla 1939291).
+## Implementation and safety
 
-Finished segments are encoded with `canvas.toBlob("image/jpeg", 0.86)` and staged in extension-owned IndexedDB storage. After scrolling finishes, the output is downloaded through the Android-compatible data URL mechanism verified in the initial prototype. Captured segments are cleared when the export is dismissed or the tab navigates away. Abandoned export sessions expire after two hours and are pruned when capture next starts.
+The Firefox Manifest V3 event page coordinates `browser.tabs.captureVisibleTab()` and a content-script capture controller. Images are stitched incrementally using an adaptive canvas memory budget (8–24 MiB of raw RGBA pixels per segment, when possible).
 
-## Limitations
+Image parts exceeding the optional encoded file-size limit are divided using pixel buffers (`getImageData`/`putImageData`), avoiding Firefox's canvas-to-canvas drawing security regression. This process can use additional temporary memory. All output segments are staged locally in extension-owned IndexedDB while capture runs and are cleared after export or dismissal. Stale records are pruned.
 
-- Only the top-level document's vertical scroll is captured. Nested scrolling containers and horizontal overflow are not supported.
-- Sticky detection is heuristic. Complex layouts, canvas animations, video, and content that changes while scrolling may produce artifacts.
-- Lazy-loaded assets that never settle are bounded by an adaptive deadline; some may be omitted.
-- Endless feeds are stopped after sustained growth rather than captured indefinitely.
-- Multipart exports require a labeled save action per JPEG. Android may request a separate confirmation for each file.
-- Temporary JPEG parts occupy local extension storage until exported or discarded.
-- Capture errors now identify whether the failure occurred during JPEG encoding, JPEG conversion, or temporary image storage.
-- A programmatic save attempt does not prove that Android completed every download. Confirm the files in Downloads.
-- Temporary extensions are removed when the `web-ext` debugging session ends.
+`browser.downloads.download()` is unavailable on Firefox for Android. This extension uses a local HTML download link, so it cannot reliably detect whether a native download prompt was accepted or whether the file was saved. Existing filenames may trigger Firefox's “Download again?” prompt.
+
+## Known limitations
+
+- Only the top-level document's vertical scrolling is supported; nested scrollers and horizontal overflow are excluded.
+- Fixed/sticky detection is heuristic; videos, animation, dynamically changing content, and very long/infinite feeds may produce incomplete or duplicated areas.
+- Canvas allocation, browser-specific file encoders, and large IndexedDB messages require Android integration testing.
+- Some captures end with a small blank margin when the scroll boundary precedes the reported document height; this avoids a known Firefox canvas-copy security issue.
+- Displayed completion indicates that download requests were initiated, **not verified Android file writes**.
+- If the capture tab closes or navigates, temporary image parts are discarded.
 
 ## License
 
