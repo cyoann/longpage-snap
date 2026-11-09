@@ -26,4 +26,5 @@ jobs:
         with:
           name: longpage-mobile-inspection
           path: .mobile-check/*-390.png
-          if-no-files-found: ignore
+          if-no-files-found: error
+          include-hidden-files: true
