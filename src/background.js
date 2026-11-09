@@ -79,10 +79,10 @@ async function capture(tab) {
       }
       await assertActive(tabId, windowId);
 
-      const image = await browser.tabs.captureVisibleTab(windowId, {
-        format: "jpeg",
-        quality: 95,
-      });
+      const image = await browser.tabs.captureVisibleTab(
+        windowId,
+        settings.format === "png" ? { format: "png" } : { format: "jpeg", quality: 95 },
+      );
 
       const state = await send(tabId, "append", { image, geometry });
       if (!Number.isFinite(state.coveredPixels) || state.coveredPixels <= coveredPixels) {
