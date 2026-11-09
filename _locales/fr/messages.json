@@ -217,5 +217,14 @@
   },
   "captureFailedHint": {
     "message": "Aucun téléchargement n’a été lancé. Ce message reste affiché jusqu’à sa fermeture."
+  },
+  "testLabTitle": {
+    "message": "Tester les captures"
+  },
+  "testLabHint": {
+    "message": "Utilisez des pages de test et vérifiez les résultats avant une version."
+  },
+  "testLabLink": {
+    "message": "Ouvrir le laboratoire"
   }
 }
