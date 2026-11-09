@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Inspect full-page screenshot dimensions, formats, sizes and part numbering without uploading images.">
+  <title>Verify screenshot files — LongPage Snap</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="../">LongPage Snap</a>
+      <nav class="primary" aria-label="Main navigation">
+        <a href="../">Overview</a>
+        <a href="./">Test lab</a>
+        <a href="./verify.html" aria-current="page">Verify images</a>
+        <a href="https://github.com/cyoann/longpage-snap">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div class="wrap">
+      <section class="hero" style="padding-bottom:32px">
+        <div class="eyebrow">Local file inspection</div>
+        <h1>Verify captured images</h1>
+        <p class="lead">Select files downloaded by LongPage Snap to check their real format, pixel dimensions, file size and multipart numbering. Image data stays on your device.</p>
+        <div class="detail">
+          <strong>Privacy and scope.</strong>
+          <p>This tool reads only the first 256 KiB of each selected file to inspect its header. It does not upload, render, hash, or save screenshot content. File-type and size checks do <em>not</em> verify visual completeness or confirm that Firefox downloaded every part.</p>
+        </div>
+      </section>
+      <section class="section" aria-labelledby="choose-files">
+        <h2 id="choose-files">1. Select downloaded files</h2>
+        <p class="muted">For a multipart capture, select <strong>all</strong> files together. Firefox's Android file picker might require you to select them one by one if multi-selection is unavailable.</p>
+        <input id="files" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple>
+        <p class="small muted" id="files-status" role="status" aria-live="polite">No files selected.</p>
+      </section>
+
+      <section class="section" aria-labelledby="expected">
+        <h2 id="expected">2. Set your expectations</h2>
+        <p class="muted">Copy the settings you used in LongPage Snap. Leave numeric limits empty if they don't apply. This site cannot read your extension preferences.</p>
+        <div class="grid-fields">
+          <div class="field">
+            <label for="mode">Export mode</label>
+            <select id="mode">
+              <option value="automatic">Automatic</option>
+              <option value="single">Single Image</option>
+              <option value="split">Split by limits</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="format">Expected format</label>
+            <select id="format">
+              <option value="any">Any</option>
+              <option value="jpeg">JPEG</option>
+              <option value="png">PNG</option>
+              <option value="webp">WebP</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="max-file">Maximum file size (MiB)</label>
+            <input id="max-file" type="number" min="0" max="100" step="0.1" placeholder="No limit">
+          </div>
+          <div class="field">
+            <label for="max-width">Maximum width (px)</label>
+            <input id="max-width" type="number" min="0" max="16384" placeholder="No limit">
+          </div>
+          <div class="field">
+            <label for="max-height">Maximum height (px)</label>
+            <input id="max-height" type="number" min="0" max="16384" placeholder="No limit">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn primary" type="button" id="inspect">Inspect selected images</button>
+          <button class="btn" type="button" id="reset">Clear selection</button>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="results-title">
+        <h2 id="results-title">3. Validation results</h2>
+        <p id="verdict" role="status" aria-live="polite">Select files and press Inspect.</p>
+        <ul class="list-lines" id="image-results"></ul>
+        <div id="warnings"></div>
+      </section>
+      <section class="section">
+        <h2>What to check visually</h2>
+        <p>Open the image in your gallery. Confirm the fixture's <strong>START</strong> and <strong>FINISH</strong> labels, ordered zone numbers, and absence of gaps or unexpected duplicates. For multipart captures, review every part in numerical order.</p>
+        <div class="actions"><a class="btn" href="./">Return to the release checklist</a></div>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="wrap"><span>Local metadata inspection · No uploads</span><a href="../">Project home</a></div></footer>
+  <script type="module" src="./verify.js"></script>
+</body>
+</html>
