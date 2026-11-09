@@ -26,7 +26,7 @@ check("eight named fixtures and a complete release matrix", () => {
   assert.equal(new Set(CHECKS.map((entry) => entry.id)).size, CHECKS.length);
   for (const entry of CHECKS) {
     assert.ok(SCENARIOS.some((scenario) => scenario.id === entry.scenario), entry.id);
-    assert.ok(entry.expected && entry.label && entry.format && entry.mode);
+    assert.ok(entry.expected && entry.label && entry.format && entry.mode, "Incomplete test: " + JSON.stringify(entry));
   }
   assert.equal(scenarioById("growth").sections + scenarioById("growth").extraSections, 14);
   assert.equal(scenarioById("long").sections, 46);

@@ -78,7 +78,7 @@ export const SCENARIOS = Object.freeze([
 export const CHECKS = Object.freeze([
   { id: "baseline-jpeg", group: "Capture", label: "Baseline · JPEG", scenario: "baseline", mode: "Automatic", format: "JPEG", expected: "START, all 10 zones, FINISH; no missing/duplicate strips." },
   { id: "baseline-png", group: "Formats", label: "Baseline · PNG", scenario: "baseline", mode: "Automatic", format: "PNG", expected: "Valid PNG files, correct pixel dimensions and ordered content." },
-  { id: "baseline-webp", group: "Formats", label: "Baseline · WebP", scenario: "baseline", mode: "Automatic", format: "Valid WebP files or a clear unsupported-format error." },
+  { id: "baseline-webp", group: "Formats", label: "Baseline · WebP", scenario: "baseline", mode: "Automatic", format: "WebP", expected: "Valid WebP files or a clear unsupported-format error." },
   { id: "single", group: "Export modes", label: "Single image", scenario: "long", mode: "Single Image", format: "JPEG", expected: "Exactly one file, no part suffix, or persistent resource-limit error." },
   { id: "automatic", group: "Export modes", label: "Automatic splitting", scenario: "long", mode: "Automatic", format: "JPEG", expected: "Original resolution retained; splits only when device limits require." },
   { id: "split-dimensions", group: "Export modes", label: "Custom dimension limit", scenario: "long", mode: "Split by limits", format: "PNG", expected: "Each part stays within configured width and height; parts are consecutive." },
