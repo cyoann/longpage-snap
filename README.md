@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.4.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.5 (Android alignment test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
 
 ## Features
 
@@ -102,6 +102,12 @@ The Firefox Manifest V3 event page coordinates `browser.tabs.captureVisibleTab()
 Image parts exceeding the optional encoded file-size limit are divided using pixel buffers (`getImageData`/`putImageData`), avoiding Firefox's canvas-to-canvas drawing security regression. This process can use additional temporary memory. All output segments are staged locally in extension-owned IndexedDB while capture runs and are cleared after export or dismissal. Stale records are pruned.
 
 `browser.downloads.download()` is unavailable on Firefox for Android. This extension uses a local HTML download link, so it cannot reliably detect whether a native download prompt was accepted or whether the file was saved. Existing filenames may trigger Firefox's “Download again?” prompt.
+
+## Android frame alignment validation (0.3.5)
+
+This draft build introduces bounded overlap between consecutive screenshots and in-memory pixel matching. It targets a reproducible baseline failure where Android capture produced the correct image dimensions but compressed the FINISH footer, omitted its case/zone label, and added a white bottom strip. The earlier end-of-scroll spacer alone did not resolve the issue.
+
+A baseline capture is acceptable only when the three distinct footer lines (**FINISH**, **CASE BASELINE · ZONES 01–10**, and **LONGPAGE SNAP · END OF FIXTURE**) are visible and ordered. Testing with the phone is required; unit tests cannot establish that Android's actual viewport and toolbar behavior is corrected.
 
 ## Known limitations
 
