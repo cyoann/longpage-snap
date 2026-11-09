@@ -1,6 +1,14 @@
 import { screenshotFilename } from "./filename.js";
 import { nextScrollY } from "./capture-plan.js";
-import { clearSegments, readSegment, stageSegment } from "./segment-store.js";
+import {
+  clearExport,
+  pruneExports,
+  readSegment,
+  recordExport,
+  releaseExport,
+  stageSegment,
+  verifyExport,
+} from "./segment-store.js";
 
 const SCOPE = "longpage-snap";
 const jobs = new Map();
@@ -19,7 +27,7 @@ async function assertActive(tabId, windowId) {
 async function discard(tabId, job) {
   jobs.delete(tabId);
   try {
-    await clearSegments(job.id, job.parts);
+    await clearExport(job.id, job.parts);
   } catch (error) {
     console.error("LongPage Snap: temporary image cleanup failed", error);
   }
@@ -41,6 +49,7 @@ async function capture(tab) {
   jobs.set(tabId, job);
 
   try {
+    await pruneExports();
     await browser.scripting.executeScript({
       target: { tabId },
       files: ["src/content.js"],
@@ -93,9 +102,10 @@ async function capture(tab) {
         if (!Number.isInteger(parts) || parts !== job.parts || parts < 1) {
           throw new Error("Staged image count did not match the capture.");
         }
+        await recordExport(job.id, tabId, parts);
         job.exporting = true;
         try {
-          await send(tabId, "complete", { filename, parts });
+          await send(tabId, "complete", { filename, parts, exportId: job.id });
         } catch (error) {
           job.exporting = false;
           throw error;
@@ -144,16 +154,16 @@ browser.runtime.onMessage.addListener((message, sender) => {
         return { stored: true };
       });
     case "read":
-      if (!job?.exporting || !Number.isInteger(message.index) ||
-          message.index < 1 || message.index > job.parts) {
-        return Promise.reject(new Error("Image export is unavailable."));
-      }
-      return readSegment(job.id, message.index).then((image) => ({ image }));
+      return verifyExport(message.exportId, tabId, message.index)
+        .then(() => readSegment(message.exportId, message.index))
+        .then((image) => ({ image }));
     case "finish":
-      if (!job?.exporting) {
-        return Promise.resolve({ finished: false });
-      }
-      return discard(tabId, job).then(() => ({ finished: true }));
+      return releaseExport(message.exportId, tabId).then(() => {
+        if (job?.id === message.exportId) {
+          jobs.delete(tabId);
+        }
+        return { finished: true };
+      });
     default:
       return undefined;
   }
@@ -161,4 +171,24 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
 browser.action.onClicked.addListener((tab) => {
   void capture(tab);
+});
+
+function releaseTab(tabId) {
+  const job = jobs.get(tabId);
+  if (job) {
+    job.cancelled = true;
+    if (job.exporting) {
+      jobs.delete(tabId);
+    }
+  }
+  void pruneExports(tabId).catch((error) => {
+    console.error("LongPage Snap: tab cleanup failed", error);
+  });
+}
+
+browser.tabs.onRemoved.addListener(releaseTab);
+browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "loading") {
+    releaseTab(tabId);
+  }
 });
