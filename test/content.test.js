@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { nextScrollY } from "../src/capture-plan.js";
 
 const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
 const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
@@ -228,9 +229,10 @@ async function runCapture(config) {
   await app.request("begin", { settings: config.captureSettings ?? {} });
 
   let covered = 0;
+  let targetY = 0;
   let lastState;
   while (true) {
-    const geometry = await app.request("prepare", { y: Math.max(0, covered - 2) });
+    const geometry = await app.request("prepare", { y: targetY });
     const state = await app.request("append", {
       geometry,
       image: "data:image/jpeg;base64,AAAA",
@@ -242,6 +244,7 @@ async function runCapture(config) {
     if (state.complete) {
       break;
     }
+    targetY = nextScrollY(state.coveredPixels, state.scale);
   }
 
   const { parts } = await app.request("finalize");
