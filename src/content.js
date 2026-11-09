@@ -14,8 +14,18 @@
     const root = document.documentElement;
     const body = document.body;
     const viewport = window.visualViewport;
+    const scroller = document.scrollingElement ?? root;
+    const layoutHeight = scroller.clientHeight || window.innerHeight;
+    const maxScrollY = Math.max(0, scroller.scrollHeight - layoutHeight);
+    const scrollY = Number.isFinite(scroller.scrollTop)
+      ? scroller.scrollTop
+      : window.scrollY;
+
     return {
       top: viewport?.pageTop ?? window.scrollY,
+      scrollY,
+      maxScrollY,
+      atScrollEnd: scrollY >= maxScrollY - 1,
       width: viewport?.width ?? window.innerWidth,
       height: viewport?.height ?? window.innerHeight,
       pageHeight: Math.max(
@@ -515,7 +525,10 @@
       coveredPixels: writer.covered,
       scale: writer.scale,
       pageHeight: pagePixels / writer.scale,
-      complete: writer.covered >= pagePixels,
+      // Firefox Android may expose less of the document in a screenshot than
+      // the layout viewport can scroll. The scroll extent is authoritative.
+      complete: writer.covered >= pagePixels || geometry.atScrollEnd,
+      remainingPixels: Math.max(0, pagePixels - writer.covered),
     };
   }
 
