@@ -75,3 +75,42 @@ test("pixel registration is available to the classic extension content script", 
   assert.ok(!source.includes("drawImage(canvas"));
   assert.ok(source.includes("globalThis.LongPageSnapFrameRegistration"));
 });
+
+test("aligns a shifted banded-page footer using stable color and text edges", () => {
+  const w = 288;
+  const start = 1660;
+  const end = 1970;
+  function pixel(y, x) {
+    let color = y >= 1920
+      ? [21, 25, 36]
+      : [(Math.floor(y / 160) * 29) % 250, 155, 105];
+    if (y >= 1930 && y < 1942 && x > 30 && x < 260 && Math.floor(x / 7) % 2 === 0) {
+      color = [245, 245, 245];
+    }
+    if (y >= 1960 && y < 1970 && x > 65 && x < 200) {
+      color = [244, 244, 244];
+    }
+    return [...color, 255];
+  }
+  function sample(offset, rows) {
+    const pixels = new Uint8ClampedArray(rows * w * 4);
+    for (let y = 0; y < rows; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        pixels.set(pixel(y + offset, x), (y * w + x) * 4);
+      }
+    }
+    return pixels;
+  }
+  const result = alignFramePixels({
+    previousPixels: sample(start, end - start),
+    previousTop: start,
+    covered: end,
+    nextPixels: sample(1870, 330),
+    nextHeight: 330,
+    width: w,
+    nominalTop: 1820,
+    maxShift: 88,
+  });
+  assert.equal(result.delta, 50);
+  assert.equal(result.confidence, "matched");
+});
