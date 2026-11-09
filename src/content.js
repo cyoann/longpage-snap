@@ -222,7 +222,7 @@
 
     const shadow = host.attachShadow({ mode: "closed" });
     const styles = document.createElement("style");
-    styles.textContent = \`
+    styles.textContent = `
       :host { color-scheme: light dark; }
       *, *::before, *::after { box-sizing: border-box; }
       .dialog {
@@ -266,7 +266,7 @@
         .secondary { color:#f8acb5; }
         .secondary:hover { background:#4b323b; }
       }
-    \`;
+    `;
 
     const card = document.createElement("section");
     card.className = "dialog";
