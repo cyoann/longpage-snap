@@ -13,7 +13,7 @@ async function send(tabId, type, details = {}) {
 
 async function capture(tab) {
   const tabId = tab.id;
-  if (tabId == null || tab.windowId == null || busyTabs.has(tabId)) {
+  if (!Number.isInteger(tabId) || !Number.isInteger(tab.windowId) || busyTabs.has(tabId)) {
     return;
   }
 
