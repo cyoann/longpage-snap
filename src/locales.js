@@ -73,7 +73,9 @@
     "settingsSectionLimits": "Custom limits",
     "progressCapturing": "Capturing page",
     "progressPreparing": "Preparing files",
-    "doneTitle": "Ready to save"
+    "doneTitle": "Ready to save",
+    "captureFailedTitle": "Capture stopped",
+    "captureFailedHint": "No download was started. This error stays visible until you close it."
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -146,7 +148,9 @@
     "settingsSectionLimits": "Limites personnalisées",
     "progressCapturing": "Capture de la page",
     "progressPreparing": "Préparation des fichiers",
-    "doneTitle": "Prêt à enregistrer"
+    "doneTitle": "Prêt à enregistrer",
+    "captureFailedTitle": "Capture interrompue",
+    "captureFailedHint": "Aucun téléchargement n’a été lancé. Ce message reste affiché jusqu’à sa fermeture."
   }
 };
   const locale = (choice, detected = "") => {
