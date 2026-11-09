@@ -1,0 +1,38 @@
+name: Website and capture lab
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "scripts/check-site.mjs"
+      - ".github/workflows/site-ci.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "scripts/check-site.mjs"
+      - ".github/workflows/site-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-site:
+    name: Static site and fixture regression checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Validate JavaScript syntax
+        run: |
+          node --check docs/lab/data.js
+          node --check docs/lab/fixture.js
+          node --check docs/lab/lab.js
+          node --check docs/lab/image-meta.js
+          node --check docs/lab/verify.js
+          node --check scripts/check-site.mjs
+      - name: Validate pages, links, test data, file parsers
+        run: node scripts/check-site.mjs
