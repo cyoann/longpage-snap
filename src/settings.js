@@ -24,7 +24,7 @@ export function normalizeSettings(value) {
     mode: MODES.has(input.mode) ? input.mode : DEFAULT_SETTINGS.mode,
     limits: LIMITS.has(input.limits) ? input.limits : DEFAULT_SETTINGS.limits,
     maxWidth: boundedInteger(input.maxWidth, 240, 16384, DEFAULT_SETTINGS.maxWidth),
-    maxHeight: boundedInteger(input.maxHeight, 240, 32768, DEFAULT_SETTINGS.maxHeight),
+    maxHeight: boundedInteger(input.maxHeight, 240, 16384, DEFAULT_SETTINGS.maxHeight),
     maxFileMiB: boundedInteger(input.maxFileMiB, 1, 100, DEFAULT_SETTINGS.maxFileMiB),
     quality: boundedInteger(input.quality, 30, 100, DEFAULT_SETTINGS.quality),
   };
