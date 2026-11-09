@@ -1,5 +1,6 @@
 export const DEFAULT_SETTINGS = Object.freeze({
   format: "jpeg",
+  language: "auto",
   mode: "automatic",
   limits: "dimensions",
   maxWidth: 4096,
@@ -9,6 +10,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
 });
 
 const FORMATS = new Set(["jpeg", "png", "webp"]);
+const LANGUAGES = new Set(["auto", "en", "fr"]);
 const MODES = new Set(["automatic", "single", "split"]);
 const LIMITS = new Set(["dimensions", "fileSize", "both"]);
 
@@ -21,6 +23,7 @@ export function normalizeSettings(value) {
   const input = value && typeof value === "object" ? value : {};
   return {
     format: FORMATS.has(input.format) ? input.format : DEFAULT_SETTINGS.format,
+    language: LANGUAGES.has(input.language) ? input.language : DEFAULT_SETTINGS.language,
     mode: MODES.has(input.mode) ? input.mode : DEFAULT_SETTINGS.mode,
     limits: LIMITS.has(input.limits) ? input.limits : DEFAULT_SETTINGS.limits,
     maxWidth: boundedInteger(input.maxWidth, 240, 16384, DEFAULT_SETTINGS.maxWidth),
@@ -43,11 +46,11 @@ export function extensionFor(format) {
 }
 
 export function useDimensionLimit(settings) {
-  return settings.limits !== "fileSize";
+  return settings.mode !== "automatic" && settings.limits !== "fileSize";
 }
 
 export function useFileLimit(settings) {
-  return settings.limits !== "dimensions";
+  return settings.mode !== "automatic" && settings.limits !== "dimensions";
 }
 
 export function chooseOutputScale({
