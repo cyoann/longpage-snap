@@ -6,7 +6,7 @@ Lightweight full-page screenshots for Firefox on Android.
 
 ## Status
 
-**Development preview 0.3.2.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
+**Development preview 0.3.3.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
 
 ## Features
 
@@ -55,7 +55,9 @@ Open Firefox's Add-ons manager, select LongPage Snap, and choose **Settings**. T
 | Maximum dimensions | Constrain width and height in pixels |
 | Maximum file size | Re-encode at lower quality where applicable, then split oversized images based on **actual Blob size** |
 
-**Single-image limitations:** One image cannot have unlimited dimensions. The capture reserves approximately 30% capacity for lazy-loaded page growth and can extend the single canvas using pixel buffers when safe. It never silently switches a Single Image capture into multipart output. Long pages may need significant downscaling. If the resulting width would be too small to read, the page grows beyond the safe canvas limit, or a single JPEG cannot meet the selected file-size limit, capture stops with an explanation rather than silently changing to multipart output. For long pages where fidelity matters, use Automatic or Split by custom limits.
+**Single-image limitations:** When lazy loading grows a page beyond its estimated capacity, Single Image automatically restarts capture **once** with the updated height and recomputed scale; no extra file is created. A second failure stops with a persistent error rather than looping. One image cannot have unlimited dimensions. The capture reserves approximately 30% capacity for lazy-loaded page growth and can extend the single canvas using pixel buffers when safe. It never silently switches a Single Image capture into multipart output. Long pages may need significant downscaling. If the resulting width would be too small to read, the page grows beyond the safe canvas limit, or a single JPEG cannot meet the selected file-size limit, capture stops with an explanation rather than silently changing to multipart output. For long pages where fidelity matters, use Automatic or Split by custom limits.
+
+**Capture failures:** The extension restores the original scroll position, clears temporary capture storage and **keeps the error dialog visible until Close is pressed**. The Settings link remains accessible. Manually cancelled captures close without showing an error.
 
 **Multipart exports:** No native download prompt appears before capture is complete. After scrolling, the extension restores the original page position and presents **Save image 1 of N**, followed by separately labeled actions for the remaining parts. Confirm Firefox's native download dialogs as needed. Every part is required to reconstruct the entire page.
 
