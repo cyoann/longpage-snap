@@ -7,7 +7,9 @@
 
   const SCOPE = "longpage-snap";
   const MIB = 1024 * 1024;
-  const JPEG_QUALITY = 0.86;
+  const DEFAULT_OPTIONS = { format: "jpeg", mode: "automatic", limits: "dimensions", maxWidth: 4096, maxHeight: 8192, maxFileMiB: 8, quality: 86 };
+  const MIME = { jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
+  const t = (key, vars = {}) => { const raw = browser.i18n?.getMessage(key) || key; return raw.replace(/\\{(\\w+)\\}/g, (_match, name) => String(vars[name] ?? "")); };
   let session = null;
 
   function measure() {
@@ -285,7 +287,7 @@
     return { host, panel, save, cancel };
   }
 
-  function begin() {
+  function begin(settings = {}) {
     if (session) {
       dispose();
     }
@@ -304,6 +306,7 @@
       mutations: 0,
       lastSettlingMs: 0,
       writer: null,
+      settings: { ...DEFAULT_OPTIONS, ...settings },
       failed: false,
       restored: false,
       saving: false,
@@ -358,11 +361,14 @@
   }
 
   function allocateSegment(writer, remainingPixels) {
-    const maxHeight = Math.floor(memoryBudget() / (4 * writer.width));
+    const maxHeight = Math.min(Math.floor(memoryBudget() / (4 * writer.width)), writer.maxSegmentHeight);
     if (maxHeight < 1) {
       throw new Error("The viewport exceeds the available canvas budget.");
     }
 
+    if (writer.settings.mode === "single" && remainingPixels > maxHeight) {
+      throw new Error("The page grew beyond the single-image canvas limit. Select Automatic export.");
+    }
     let height = Math.min(maxHeight, Math.max(1, remainingPixels));
     while (height >= 1) {
       try {
@@ -463,29 +469,43 @@
     const image = await decodeImage(imageUrl);
     let writer = session.writer;
     if (!writer) {
-      const scale = image.naturalWidth / geometry.width;
-      if (!Number.isFinite(scale) || scale <= 0) {
+      const sourceScale = image.naturalWidth / geometry.width;
+      if (!Number.isFinite(sourceScale) || sourceScale <= 0) {
         throw new Error("Invalid screenshot scale.");
       }
+      const settings = session.settings;
+      const pageHeight = measure().pageHeight;
+      const dimensionLimits = settings.limits !== "fileSize";
+      const maxWidth = dimensionLimits ? settings.maxWidth : 8192;
+      const maxHeight = dimensionLimits ? settings.maxHeight : 16384;
+      let scale = Math.min(sourceScale, maxWidth / geometry.width);
+      if (settings.mode === "single") {
+        scale = Math.min(
+          scale, maxHeight / pageHeight, 16384 / pageHeight,
+          Math.sqrt(memoryBudget() / (4 * geometry.width * pageHeight)),
+        );
+        if (Math.floor(geometry.width * scale) < 240) {
+          throw new Error("A readable single image cannot fit this device. Select Automatic or Multiple images.");
+        }
+      }
+      const width = Math.max(1, Math.floor(geometry.width * scale));
+      const maxSegmentHeight = settings.mode === "single"
+        ? Math.ceil(pageHeight * scale)
+        : Math.min(maxHeight, 16384, Math.floor(memoryBudget() / (4 * width)));
       writer = {
-        scale,
-        width: image.naturalWidth,
-        covered: 0,
-        canvas: null,
-        context: null,
-        start: 0,
-        parts: 0,
+        settings, sourceScale, scale, width, maxSegmentHeight,
+        covered: 0, canvas: null, context: null, start: 0, parts: 0,
       };
       session.writer = writer;
     }
 
-    if (Math.abs(image.naturalWidth / geometry.width - writer.scale) > writer.scale * 0.02) {
+    if (Math.abs(image.naturalWidth / geometry.width - writer.sourceScale) > writer.sourceScale * 0.02) {
       throw new Error("Viewport width changed during capture.");
     }
 
     const top = Math.round(geometry.top * writer.scale);
     const pagePixels = Math.ceil(measure().pageHeight * writer.scale);
-    const end = Math.min(pagePixels, top + image.naturalHeight);
+    const end = Math.min(pagePixels, top + Math.floor(image.naturalHeight * writer.scale / writer.sourceScale));
     if (top > writer.covered + 2) {
       throw new Error("Screenshot alignment gap detected.");
     }
@@ -505,7 +525,8 @@
       }
       writer.context.drawImage(
         image,
-        0, cursor - top, image.naturalWidth, length,
+        0, (cursor - top) * writer.sourceScale / writer.scale,
+        image.naturalWidth, length * writer.sourceScale / writer.scale,
         0, cursor - writer.start, writer.width, length,
       );
       cursor += length;
@@ -514,7 +535,7 @@
 
     rememberPositionedElements();
     const progress = Math.min(100, Math.floor(100 * writer.covered / pagePixels));
-    showOverlay("Capturing page… " + progress + "%");
+    showOverlay(t("captureProgress", { n: progress }));
 
     return {
       coveredPixels: writer.covered,
@@ -694,7 +715,7 @@
 
     switch (message.type) {
       case "begin":
-        return Promise.resolve(begin());
+        return Promise.resolve(begin(message.settings));
       case "prepare":
         return prepare(message.y);
       case "append":
