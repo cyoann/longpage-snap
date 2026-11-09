@@ -8,6 +8,7 @@ import {
   normalizeSettings,
   useFileLimit,
   useDimensionLimit,
+  shouldRetrySingleGrowth,
 } from "../src/settings.js";
 
 test("normalizes incomplete and invalid preferences", () => {
@@ -72,4 +73,19 @@ test("custom split mode applies dimension and file limits", () => {
 test("language override is validated", () => {
   assert.equal(normalizeSettings({ language: "fr" }).language, "fr");
   assert.equal(normalizeSettings({ language: "ja" }).language, "auto");
+});
+
+test("retry a growing single-image page once, not arbitrary memory errors", () => {
+  const settings = { ...DEFAULT_SETTINGS, mode: "single" };
+  const growth = new Error(
+    "This page grew beyond the available single-image memory or dimension limit. " +
+    "Choose Automatic or Split by custom limits."
+  );
+  assert.equal(shouldRetrySingleGrowth(settings, growth, 0), true);
+  assert.equal(shouldRetrySingleGrowth(settings, growth, 1), false);
+  assert.equal(shouldRetrySingleGrowth({ ...settings, mode: "automatic" }, growth, 0), false);
+  assert.equal(shouldRetrySingleGrowth(settings, new Error("Out of memory."), 0), false);
+  assert.equal(shouldRetrySingleGrowth(settings, new Error("The operation is insecure."), 0), false);
+  assert.equal(shouldRetrySingleGrowth(settings,
+    new Error("The page grew beyond the single-image canvas limit. Select Automatic export."), 0), true);
 });
