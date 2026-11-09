@@ -383,6 +383,10 @@
     cancel.className = "secondary";
     cancel.textContent = t("cancel");
     cancel.addEventListener("click", () => {
+      if (session?.failed) {
+        dispose();
+        return;
+      }
       if (session?.export) {
         void finishExport();
         return;
@@ -935,9 +939,18 @@
     }
     session.failed = true;
     restorePage();
-    session.title.textContent = t("captureError", { error: "" });
-    showOverlay(t("captureError", { error: message }));
-    session.host.style.pointerEvents = "none";
+    // Release the image buffer, but keep the error dialog until the user
+    // explicitly closes it. Android screen recording may need time to read it.
+    session.writer = null;
+    session.title.textContent = t("captureFailedTitle");
+    session.description.textContent = t("captureFailedHint");
+    showOverlay(message);
+    session.track.style.display = "none";
+    session.save.style.display = "none";
+    session.cancel.textContent = t("close");
+    session.cancel.disabled = false;
+    session.dangerRow.style.display = "flex";
+    session.host.style.pointerEvents = "auto";
   }
 
   function dispose() {
@@ -945,13 +958,7 @@
       return;
     }
     restorePage();
-    const failed = session.failed;
-    const host = session.host;
-    if (failed) {
-      window.setTimeout(() => host.remove(), 5000);
-    } else {
-      host.remove();
-    }
+    session.host.remove();
     session = null;
   }
 
@@ -975,7 +982,13 @@
         fail(message.message);
         return Promise.resolve({ ok: true });
       case "cleanup":
-        dispose();
+        // Background has already cleared the temporary export records.
+        // Do not dismiss the error panel as part of automatic cleanup.
+        if (session?.failed) {
+          restorePage();
+        } else {
+          dispose();
+        }
         return Promise.resolve({ ok: true });
       default:
         return undefined;
