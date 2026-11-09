@@ -25,7 +25,10 @@ function makeStyle() {
   };
 }
 
-function harness({ width, height, pageHeight, layoutHeight = height, storageError = false }) {
+function harness({
+  width, height, pageHeight, layoutHeight = height, storageError = false,
+  growAtScrollY = Infinity, growToPageHeight = pageHeight,
+}) {
   const draws = [];
   const downloads = [];
   const buttons = [];
@@ -112,7 +115,13 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
     }),
     scrollTo(x, y) {
       if (typeof x === "object") {
-        this.scrollY = Math.min(Math.max(0, x.top), pageHeight - layoutHeight);
+        if (x.top >= growAtScrollY) {
+          root.scrollHeight = growToPageHeight;
+          root.offsetHeight = growToPageHeight;
+          body.scrollHeight = growToPageHeight;
+          body.offsetHeight = growToPageHeight;
+        }
+        this.scrollY = Math.min(Math.max(0, x.top), root.scrollHeight - layoutHeight);
       } else {
         this.scrollX = x;
         this.scrollY = y;
@@ -369,6 +378,37 @@ test("file-size constrained exports split oversized parts", async () => {
   assert.equal(app.staged.size, app.parts);
   await clickButton(app, "Discard");
   assert.equal(app.staged.size, 0);
+});
+
+test("Single Image stays one file when lazy-loaded content increases page height", async () => {
+  const app = await runCapture({
+    width: 400,
+    height: 160,
+    pageHeight: 400,
+    growAtScrollY: 120,
+    growToPageHeight: 620,
+    captureSettings: { mode: "single" },
+  });
+
+  assert.equal(app.lastState.complete, true);
+  assert.equal(app.parts, 1, "Growing pages must not create a second image");
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
+  assert.equal(app.staged.size, 0);
+});
+
+test("Single Image fails instead of splitting when a growing page exceeds device limits", async () => {
+  await assert.rejects(
+    runCapture({
+      width: 4000,
+      height: 500,
+      pageHeight: 1000,
+      growAtScrollY: 350,
+      growToPageHeight: 5000,
+      captureSettings: { mode: "single" },
+    }),
+    /page grew beyond the available single-image memory or dimension limit/i,
+  );
 });
 
 test("manual French selection localizes capture and save controls", async () => {
