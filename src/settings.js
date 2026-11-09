@@ -107,3 +107,16 @@ export function chooseOutputScale({
     imageHeight,
   };
 }
+
+/**
+ * A single-image capture may need one fresh pass after lazy content expands.
+ * Retry only this known, recoverable geometry change: not canvas allocation,
+ * encoding, IndexedDB or arbitrary memory/security failures.
+ */
+export function shouldRetrySingleGrowth(settings, error, attempts) {
+  if (settings.mode !== "single" || attempts !== 0) {
+    return false;
+  }
+  const message = typeof error?.message === "string" ? error.message : String(error);
+  return /(?:this|the) page grew beyond (?:the available single-image|the single-image canvas) (?:memory or dimension )?limit/i.test(message);
+}
