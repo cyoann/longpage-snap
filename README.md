@@ -6,7 +6,7 @@ Lightweight full-page screenshots for Firefox on Android.
 
 ## Status
 
-**Development preview 0.3.3.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
+**Development preview 0.3.4.** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface, localization, settings, PNG/WebP export, size constraints, and single-image mode have passed automated tests but **are not yet verified on Android hardware**.
 
 ## Features
 
@@ -39,6 +39,14 @@ npx web-ext run --target=firefox-android --android-device=DEVICE_SERIAL --firefo
 ```
 
 For Firefox Nightly, use `org.mozilla.fenix`; for Beta, `org.mozilla.firefox_beta`. The temporary add-on is removed when the debugging session ends.
+
+## Public test lab
+
+The [LongPage Snap test lab](https://cyoann.github.io/longpage-snap/lab/) is hosted from the repository's `main/docs` GitHub Pages source. Until Pages is enabled in repository settings, the link may be unavailable.
+
+The extension's **Settings → Test capture → Open test lab** link opens the lab directly in Firefox. The site includes eight deterministic capture fixtures, a 16-case release acceptance checklist (local results, exportable JSON), and an offline JPEG/PNG/WebP metadata validator.
+
+The website cannot launch privileged extension actions, verify screenshot pixel completeness, or detect native Android download confirmation. These remain manual on-device acceptance checks; CI validates website routes, test fixture behavior and metadata parsing.
 
 ## Using settings
 
