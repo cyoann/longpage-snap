@@ -116,6 +116,10 @@
       return;
     }
     session.panel.textContent = message;
+    const progress = message.match(/(\\d+)\\s*%/);
+    if (progress) {
+      session.fill.style.width = progress[1] + "%";
+    }
     session.host.style.opacity = "1";
   }
 
@@ -495,7 +499,7 @@
       // On Firefox, drawing one extension-owned canvas into another can
       // taint the destination (Bugzilla 1939291). Encode the original canvas
       // directly, even when the last segment has a small white margin.
-      showOverlay("Preparing image " + index + "…");
+      showOverlay(t("preparePart", { n: index }));
       const blob = await encodeJpeg(writer.canvas);
 
       phase = "JPEG conversion";
@@ -663,7 +667,7 @@
     const index = state.next;
 
     try {
-      showOverlay("Requesting image " + index + " of " + state.parts + "…");
+      showOverlay(t("requestPart", { n: index, total: state.parts }));
       const { image } = await browser.runtime.sendMessage({
         scope: SCOPE,
         type: "read",
@@ -698,15 +702,13 @@
           return;
         }
 
-        session.panel.textContent =
-          "All " + state.parts + " download requests sent. Confirm each Firefox prompt and check Downloads.";
-        session.save.textContent = "Close";
+        session.panel.textContent = t("saveCompleteHint");
+        session.title.textContent = t("saveComplete");
+        session.save.textContent = t("finishExport");
         session.cancel.style.display = "none";
       } else {
-        session.panel.textContent =
-          "Image " + index + " of " + state.parts +
-          " requested. Confirm the Firefox dialog, then save the next image.";
-        session.save.textContent = "Save image " + state.next + " of " + state.parts;
+        session.panel.textContent = t("requestPartNext", { n: index, total: state.parts });
+        session.save.textContent = t("savePart", { n: state.next, total: state.parts });
       }
     } catch (error) {
       if (session) {
@@ -728,16 +730,18 @@
 
     restorePage();
     session.export = { parts, filename, exportId, next: 1, done: false };
-    session.cancel.textContent = "Discard";
-    showOverlay(parts === 1
-      ? "Capture complete. Saving JPEG…"
-      : "Capture complete: " + parts +
-        " JPEG images. Save every part to keep the complete page.");
+    session.cancel.textContent = t("discard");
+    session.title.textContent = t("captureDone");
+    session.description.textContent = parts === 1
+      ? t("captureSingle")
+      : t("captureMultiple", { n: parts });
+    session.fill.style.width = "100%";
+    showOverlay(parts === 1 ? t("savingLabel") : t("exportingLabel"));
     if (parts === 1) {
       await downloadNext();
       return { ready: true };
     }
-    session.save.textContent = "Save image 1 of " + parts;
+    session.save.textContent = t("savePart", { n: 1, total: parts });
     session.save.style.display = "block";
     return { ready: true };
   }
@@ -748,7 +752,8 @@
     }
     session.failed = true;
     restorePage();
-    showOverlay("Capture stopped: " + message);
+    session.title.textContent = t("captureError", { error: "" });
+    showOverlay(t("captureError", { error: message }));
     session.host.style.pointerEvents = "none";
   }
 
