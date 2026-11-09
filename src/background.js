@@ -106,6 +106,10 @@ async function capture(tab) {
         if (!Number.isInteger(parts) || parts !== job.parts || parts < 1) {
           throw new Error("Staged image count did not match the capture.");
         }
+        // Never expose a multipart export if the user chose Single Image.
+        if (settings.mode === "single" && parts !== 1) {
+          throw new Error("Single Image could not fit into one file. Choose Automatic export.");
+        }
         await recordExport(job.id, tabId, parts);
         job.exporting = true;
         try {
