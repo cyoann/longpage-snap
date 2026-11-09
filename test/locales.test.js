@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import vm from "node:vm";
 import test from "node:test";
 
 function readJSON(path) {
@@ -35,4 +36,22 @@ test("manifest registers localized options and storage", () => {
   assert.equal(manifest.name, "__MSG_extensionName__");
   assert.equal(manifest.options_ui.page, "options/options.html");
   assert.ok(manifest.permissions.includes("storage"));
+});
+
+test("manual language overrides browser locale in the shared translator", () => {
+  const script = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
+  const context = vm.createContext({});
+  vm.runInContext(script, context);
+  const translator = context.LongPageSnapLocales;
+  assert.equal(translator.locale("fr", "en-US"), "fr");
+  assert.equal(translator.locale("auto", "fr-FR"), "fr");
+  assert.equal(translator.locale("auto", "en-US"), "en");
+  assert.equal(
+    translator.get("modeSplitHint", "fr", "en-US").includes("limites"),
+    true,
+  );
+  assert.equal(
+    translator.get("savePart", "fr", "en-US", { n: 2, total: 3 }),
+    "Enregistrer l’image 2 sur 3",
+  );
 });
