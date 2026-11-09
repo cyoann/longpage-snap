@@ -1,6 +1,6 @@
 import { screenshotFilename } from "./filename.js";
 import { nextScrollY } from "./capture-plan.js";
-import { extensionFor, normalizeSettings } from "./settings.js";
+import { extensionFor, normalizeSettings, shouldRetrySingleGrowth } from "./settings.js";
 import {
   clearExport,
   pruneExports,
@@ -66,6 +66,7 @@ async function capture(tab) {
     let coveredPixels = 0;
     let previousPageHeight = 0;
     let growthCount = 0;
+    let growthRetries = 0;
 
     while (true) {
       if (job.cancelled) {
@@ -84,7 +85,25 @@ async function capture(tab) {
         settings.format === "png" ? { format: "png" } : { format: "jpeg", quality: 95 },
       );
 
-      const state = await send(tabId, "append", { image, geometry });
+      let state;
+      try {
+        state = await send(tabId, "append", { image, geometry });
+      } catch (error) {
+        // A page can grow after the first canvas was sized. One fresh pass
+        // starts with the now-loaded document height and recalculates scale.
+        // Never retry actual out-of-memory, canvas security or storage errors.
+        if (job.parts === 0 && shouldRetrySingleGrowth(settings, error, growthRetries)) {
+          growthRetries += 1;
+          console.info("LongPage Snap: recalculating Single Image after page growth.");
+          await send(tabId, "begin", { settings });
+          targetY = 0;
+          coveredPixels = 0;
+          previousPageHeight = 0;
+          growthCount = 0;
+          continue;
+        }
+        throw error;
+      }
       if (!Number.isFinite(state.coveredPixels) || state.coveredPixels <= coveredPixels) {
         throw new Error("Scrolling made no progress.");
       }
