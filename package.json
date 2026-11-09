@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Full-page screenshots for Firefox on Android.",
   "scripts": {
-    "check": "node --check src/background.js && node --check src/content.js && node --check src/capture-plan.js && node --check src/filename.js && node --check src/segment-store.js",
+    "check": "node --check src/background.js && node --check src/content.js && node --check src/capture-plan.js && node --check src/filename.js && node --check src/segment-store.js && node --check src/settings.js && node --check options/options.js",
     "test": "node --test",
     "lint": "eslint ."
   },
