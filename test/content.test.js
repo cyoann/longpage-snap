@@ -4,6 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
+const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
 
 function makeStyle() {
   const properties = new Map();
@@ -140,6 +141,7 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
 
   const browser = {
     i18n: {
+      getUILanguage() { return "en-US"; },
       getMessage(key) {
         const strings = {
           savePart: "Save image {n} of {total}",
@@ -182,11 +184,11 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
     },
   };
 
-  vm.runInNewContext(script, {
+  const sandbox = vm.createContext({
     browser,
     document,
     window,
-    navigator: { deviceMemory: 1 },
+    navigator: { deviceMemory: 1, language: "en-US" },
     performance: { now: () => (now += 17) },
     MutationObserver,
     Image,
@@ -194,6 +196,8 @@ function harness({ width, height, pageHeight, layoutHeight = height, storageErro
     requestAnimationFrame: (callback) => queueMicrotask(callback),
     console,
   });
+  vm.runInContext(locales, sandbox);
+  vm.runInContext(script, sandbox);
 
   return {
     draws,
@@ -272,7 +276,7 @@ test("multipart export waits for explicit, individually labeled saves", async ()
   assert.equal(app.downloads[1].filename, "longpage-snap-Test-part-002.jpg");
   assert.ok(app.downloads.every((download) => download.href.startsWith("data:image/jpeg;base64,")));
 
-  await clickButton(app, "Close");
+  await clickButton(app, "Done");
   assert.equal(app.staged.size, 0, "Images are cleared after export is dismissed");
 });
 
@@ -356,7 +360,7 @@ test("file-size constrained exports split oversized parts", async () => {
   const app = await runCapture({
     width: 4000, height: 400, pageHeight: 1500,
     captureSettings: {
-      format: "png", mode: "automatic", limits: "fileSize",
+      format: "png", mode: "split", limits: "fileSize",
       maxFileMiB: 1,
     },
   });
@@ -364,5 +368,19 @@ test("file-size constrained exports split oversized parts", async () => {
   assert.equal(app.downloads.length, 0);
   assert.equal(app.staged.size, app.parts);
   await clickButton(app, "Discard");
+  assert.equal(app.staged.size, 0);
+});
+
+test("manual French selection localizes capture and save controls", async () => {
+  const app = await runCapture({
+    width: 5000,
+    height: 300,
+    pageHeight: 800,
+    captureSettings: { language: "fr", mode: "split", maxWidth: 10000 },
+  });
+  assert.equal(app.parts, 2);
+  await clickButton(app, "Enregistrer l’image 1 sur 2");
+  assert.equal(app.downloads.length, 1);
+  await clickButton(app, "Supprimer");
   assert.equal(app.staged.size, 0);
 });
