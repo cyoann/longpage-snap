@@ -24,7 +24,7 @@ function makeStyle() {
   };
 }
 
-function harness({ width, height, pageHeight, layoutHeight = height }) {
+function harness({ width, height, pageHeight, layoutHeight = height, storageError = false }) {
   const draws = [];
   const downloads = [];
   const buttons = [];
@@ -66,6 +66,11 @@ function harness({ width, height, pageHeight, layoutHeight = height }) {
           return { data: new Uint8ClampedArray([255, 255, 255, 255]) };
         },
         drawImage(...args) {
+          if (args[0]?.tag === "canvas") {
+            // Firefox WebExtensions Bugzilla 1939291: canvas-to-canvas
+            // copies can throw SecurityError, even for captured data URLs.
+            throw new Error("The operation is insecure");
+          }
           draws.push(args);
         },
       });
@@ -136,6 +141,9 @@ function harness({ width, height, pageHeight, layoutHeight = height }) {
       async sendMessage(message) {
         switch (message.type) {
           case "stage":
+            if (storageError) {
+              throw new Error("The operation is insecure");
+            }
             staged.set(message.index, message.image);
             return { stored: true };
           case "read":
@@ -273,4 +281,25 @@ test("does not terminate early when the scroll position can advance", async () =
   });
   assert.equal(app.lastState.remainingPixels, 0);
   assert.equal(app.downloads.length, 1);
+});
+
+test("labels browser storage failures with the failing capture stage", async () => {
+  const app = harness({
+    width: 100,
+    height: 100,
+    pageHeight: 200,
+    storageError: true,
+  });
+  await app.request("begin");
+  const geometry = await app.request("prepare", { y: 0 });
+  await app.request("append", {
+    geometry,
+    image: "data:image/jpeg;base64,AAAA",
+  });
+  await assert.rejects(
+    app.request("finalize"),
+    /Image 1 \(temporary image storage\): The operation is insecure/,
+  );
+  await app.request("cleanup");
+  assert.equal(app.downloads.length, 0);
 });
