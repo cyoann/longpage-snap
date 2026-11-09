@@ -51,7 +51,7 @@ test("unreadably tall single-image export fails explicitly", () => {
 });
 
 test("file size limitation can be enabled independently", () => {
-  assert.equal(useFileLimit(normalizeSettings({ limits: "fileSize" })), true);
+  assert.equal(useFileLimit(normalizeSettings({ mode: "split", limits: "fileSize" })), true);
   assert.equal(useFileLimit(DEFAULT_SETTINGS), false);
 });
 
