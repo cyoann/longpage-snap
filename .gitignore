@@ -4,3 +4,4 @@ dist/
 web-ext-artifacts/
 *.log
 .env
+.mobile-check/
