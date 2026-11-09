@@ -253,7 +253,8 @@
       button:disabled { opacity:.6; cursor:default; }
       .primary { display:none; width:100%; padding:11px 16px; background:#1362da; border:1px solid #1362da; color:#fff; }
       .primary:hover { background:#084eb8; }
-      .secondary { margin:14px auto 0; border:0; color:#6c3642; background:transparent; padding:8px 14px; }
+      .danger-row { margin-top:12px; padding-top:18px; border-top:1px solid #e6eaf0; display:flex; justify-content:center; }
+      .secondary { margin:0 auto; border:0; color:#6c3642; background:transparent; padding:8px 14px; }
       .secondary:hover { background:#f7edf0; }
       .privacy { margin:16px 0 0; font-size:11px; text-align:center; color:#7b8798; }
       @media (prefers-color-scheme: dark) {
@@ -266,7 +267,7 @@
         .fill,.primary { background:#82baff; }
         .primary { color:#102033; border-color:#82baff; }
         .primary:hover { background:#a9d0ff; }
-        .actions { border-color:#394453; }
+        .actions, .danger-row { border-color:#394453; }
         .secondary { color:#f8acb5; }
         .secondary:hover { background:#4b323b; }
       }
@@ -339,7 +340,10 @@
       panel.textContent = t("cancel");
       void browser.runtime.sendMessage({ scope: SCOPE, type: "cancel" });
     });
-    actions.append(save, cancel);
+    const dangerRow = document.createElement("div");
+    dangerRow.className = "danger-row";
+    dangerRow.append(cancel);
+    actions.append(save, dangerRow);
 
     const privacy = document.createElement("p");
     privacy.className = "privacy";
@@ -347,7 +351,7 @@
     card.append(header, title, description, panel, track, actions, privacy);
     shadow.append(styles, card);
     document.documentElement.append(host);
-    return { host, panel, title, description, fill, track, save, cancel };
+    return { host, panel, title, description, fill, track, save, cancel, dangerRow };
   }
 
   function begin(settings = {}) {
@@ -757,7 +761,7 @@
         session.panel.textContent = t("saveCompleteHint");
         session.title.textContent = t("saveComplete");
         session.save.textContent = t("finishExport");
-        session.cancel.style.display = "none";
+        session.dangerRow.style.display = "none";
       } else {
         session.panel.textContent = t("requestPartNext", { n: index, total: state.parts });
         session.save.textContent = t("savePart", { n: state.next, total: state.parts });
