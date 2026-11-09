@@ -27,6 +27,8 @@ function makeStyle() {
 function harness({ width, height, pageHeight }) {
   const draws = [];
   const downloads = [];
+  const buttons = [];
+  const staged = new Map();
   let listener;
 
   function element(tag) {
@@ -39,7 +41,11 @@ function harness({ width, height, pageHeight }) {
       remove() {
         this.isConnected = false;
       },
-      addEventListener() {},
+      addEventListener(type, callback) {
+        if (type === "click") {
+          this.click = callback;
+        }
+      },
       attachShadow() {
         return { append() {} };
       },
@@ -47,6 +53,9 @@ function harness({ width, height, pageHeight }) {
         return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
       },
     };
+    if (tag === "button") {
+      buttons.push(item);
+    }
     if (tag === "a") {
       item.click = () => downloads.push({ filename: item.download, href: item.href });
     }
@@ -123,7 +132,20 @@ function harness({ width, height, pageHeight }) {
   const browser = {
     runtime: {
       onMessage: { addListener(callback) { listener = callback; } },
-      sendMessage: async () => ({ accepted: true }),
+      async sendMessage(message) {
+        switch (message.type) {
+          case "stage":
+            staged.set(message.index, message.image);
+            return { stored: true };
+          case "read":
+            return { image: staged.get(message.index) };
+          case "finish":
+            staged.clear();
+            return { finished: true };
+          default:
+            return { accepted: true };
+        }
+      },
     },
   };
 
@@ -143,6 +165,8 @@ function harness({ width, height, pageHeight }) {
   return {
     draws,
     downloads,
+    staged,
+    buttons,
     window,
     request(type, fields = {}) {
       return listener({ scope: "longpage-snap", type, ...fields });
@@ -161,34 +185,63 @@ async function runCapture(config) {
     const state = await app.request("append", {
       geometry,
       image: "data:image/jpeg;base64,AAAA",
-      filename,
     });
     assert.ok(state.coveredPixels > covered, "Each screenshot must extend coverage");
+    assert.equal(app.downloads.length, 0, "No downloads during scrolling");
     covered = state.coveredPixels;
     if (state.complete) {
       break;
     }
   }
 
-  await app.request("finalize", { filename });
-  await app.request("cleanup");
-  return app;
+  const { parts } = await app.request("finalize");
+  assert.equal(app.downloads.length, 0, "All frames are staged before export");
+  assert.equal(app.staged.size, parts);
+  await app.request("complete", { filename, parts });
+  assert.equal(app.window.scrollY, 0, "Page position restored before download");
+
+  return { ...app, parts };
 }
 
-test("stitches overlapping frames without repeated rows", async () => {
+async function clickButton(app, text) {
+  const button = app.buttons.find((item) => item.textContent === text);
+  assert.ok(button, "Missing button: " + text);
+  button.click();
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
+test("single JPEG downloads automatically after complete capture", async () => {
   const app = await runCapture({ width: 100, height: 100, pageHeight: 220 });
+  assert.equal(app.parts, 1);
   assert.equal(app.downloads.length, 1);
   assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
   assert.deepEqual(Array.from(app.draws, (entry) => entry[4]), [100, 98, 22]);
-  assert.equal(app.window.scrollY, 0);
+  assert.equal(app.staged.size, 0, "Temporary image is cleared after export");
 });
 
-test("exports separate JPEGs when the memory budget is exceeded", async () => {
+test("multipart export waits for explicit, individually labeled saves", async () => {
   const app = await runCapture({ width: 5000, height: 300, pageHeight: 800 });
+  assert.equal(app.parts, 2);
+  assert.equal(app.downloads.length, 0, "No download until the user chooses to save");
+  assert.equal(app.staged.size, 2);
+
+  await clickButton(app, "Save image 1 of 2");
+  assert.equal(app.downloads.length, 1);
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test-part-001.jpg");
+  assert.equal(app.staged.size, 2, "Images are retained until export is dismissed");
+
+  await clickButton(app, "Save image 2 of 2");
   assert.equal(app.downloads.length, 2);
-  assert.deepEqual(
-    app.downloads.map((download) => download.filename),
-    ["longpage-snap-Test-part-001.jpg", "longpage-snap-Test-part-002.jpg"],
-  );
+  assert.equal(app.downloads[1].filename, "longpage-snap-Test-part-002.jpg");
   assert.ok(app.downloads.every((download) => download.href.startsWith("data:image/jpeg;base64,")));
+
+  await clickButton(app, "Close");
+  assert.equal(app.staged.size, 0, "Images are cleared after export is dismissed");
+});
+
+test("discard clears staged images without downloading", async () => {
+  const app = await runCapture({ width: 5000, height: 300, pageHeight: 800 });
+  await clickButton(app, "Discard");
+  assert.equal(app.downloads.length, 0);
+  assert.equal(app.staged.size, 0);
 });
