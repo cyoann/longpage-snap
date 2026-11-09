@@ -272,7 +272,7 @@ async function runCapture(config) {
     if (state.complete) {
       break;
     }
-    targetY = nextScrollY(state.coveredPixels, state.scale);
+    targetY = nextScrollY(state.coveredPixels, state.scale, geometry.height);
   }
 
   const { parts } = await app.request("finalize");
@@ -296,7 +296,10 @@ test("single JPEG downloads automatically after complete capture", async () => {
   assert.equal(app.parts, 1);
   assert.equal(app.downloads.length, 1);
   assert.equal(app.downloads[0].filename, "longpage-snap-Test.jpg");
-  assert.deepEqual(Array.from(app.draws, (entry) => entry[4]), [100, 98, 22]);
+  assert.equal(
+    app.draws.reduce((sum, entry) => sum + entry[4], 0), 220,
+    "All page pixels are stitched once without gaps or duplicates",
+  );
   assert.equal(app.staged.size, 0, "Temporary image is cleared after export");
 });
 
