@@ -1,0 +1,100 @@
+// One source of truth for fixture routes and release acceptance checks.
+export const SCENARIOS = Object.freeze([
+  {
+    id: "baseline",
+    title: "Baseline layout",
+    tag: "Supported",
+    sections: 10,
+    sectionHeight: 230,
+    description: "A fixed-height article with numbered color bands and a unique finish marker.",
+    expected: "Every numbered zone appears once, in order. START and FINISH both appear.",
+  },
+  {
+    id: "sticky",
+    title: "Sticky and fixed elements",
+    tag: "Supported · heuristic",
+    sections: 11,
+    sectionHeight: 240,
+    description: "A sticky header and a fixed corner marker over a long document.",
+    expected: "The persistent markers are not repeated in every screenshot tile; all content bands remain present.",
+  },
+  {
+    id: "lazy",
+    title: "Lazy-loaded images",
+    tag: "Supported · timing",
+    sections: 12,
+    sectionHeight: 260,
+    description: "Images are injected only when the browser scrolls them into view.",
+    expected: "Each zone contains its matching image. No missing or blank placeholders.",
+  },
+  {
+    id: "growth",
+    title: "Page grows while scrolling",
+    tag: "Supported · bounded",
+    sections: 9,
+    extraSections: 5,
+    sectionHeight: 240,
+    description: "Additional document sections are appended once scrolling reaches the trigger.",
+    expected: "All 14 zones and FINISH are present, or Single Image reports a persistent, readable limit error.",
+  },
+  {
+    id: "long",
+    title: "Long-page memory stress",
+    tag: "Device dependent",
+    sections: 46,
+    sectionHeight: 370,
+    description: "A tall document for testing automatic splitting, one-image downscaling, and memory limits.",
+    expected: "All 46 zones are present. Single Image returns one readable image or a persistent limit error.",
+  },
+  {
+    id: "nested",
+    title: "Nested scroll container",
+    tag: "Known limitation",
+    sections: 9,
+    sectionHeight: 220,
+    description: "An independent scrollable region lives inside a normal document.",
+    expected: "Top-level content is captured, but offscreen nested-scroll content is not guaranteed.",
+  },
+  {
+    id: "wide",
+    title: "Horizontal overflow",
+    tag: "Known limitation",
+    sections: 9,
+    sectionHeight: 230,
+    description: "A deliberately over-wide graphic extends beyond the mobile viewport.",
+    expected: "The normal page captures vertically. Horizontal offscreen content may be clipped.",
+  },
+  {
+    id: "motion",
+    title: "Animation and changing content",
+    tag: "Known limitation",
+    sections: 9,
+    sectionHeight: 230,
+    description: "An animation and clock change while screenshots are assembled.",
+    expected: "The page saves without hanging. Animated content may differ between tiles.",
+  },
+]);
+
+export const CHECKS = Object.freeze([
+  { id: "baseline-jpeg", group: "Capture", label: "Baseline · JPEG", scenario: "baseline", mode: "Automatic", format: "JPEG", expected: "START, all 10 zones, FINISH; no missing/duplicate strips." },
+  { id: "baseline-png", group: "Formats", label: "Baseline · PNG", scenario: "baseline", mode: "Automatic", format: "PNG", expected: "Valid PNG files, correct pixel dimensions and ordered content." },
+  { id: "baseline-webp", group: "Formats", label: "Baseline · WebP", scenario: "baseline", mode: "Automatic", format: "Valid WebP files or a clear unsupported-format error." },
+  { id: "single", group: "Export modes", label: "Single image", scenario: "long", mode: "Single Image", format: "JPEG", expected: "Exactly one file, no part suffix, or persistent resource-limit error." },
+  { id: "automatic", group: "Export modes", label: "Automatic splitting", scenario: "long", mode: "Automatic", format: "JPEG", expected: "Original resolution retained; splits only when device limits require." },
+  { id: "split-dimensions", group: "Export modes", label: "Custom dimension limit", scenario: "long", mode: "Split by limits", format: "PNG", expected: "Each part stays within configured width and height; parts are consecutive." },
+  { id: "split-filesize", group: "Export modes", label: "Custom file-size limit", scenario: "long", mode: "Split by limits", format: "JPEG", expected: "Each file stays within configured MiB limit; file parts are consecutive." },
+  { id: "sticky", group: "Page behavior", label: "Sticky elements", scenario: "sticky", mode: "Automatic", format: "JPEG", expected: "Fixed/sticky elements not repeatedly tiled; all zones captured." },
+  { id: "lazy", group: "Page behavior", label: "Lazy-loaded images", scenario: "lazy", mode: "Automatic", format: "JPEG", expected: "Every LAZY IMAGE N visible in the output." },
+  { id: "growth", group: "Page behavior", label: "Dynamic page growth", scenario: "growth", mode: "Single Image", format: "JPEG", expected: "14 zones in one file or readable persistent limit error." },
+  { id: "nested", group: "Limitations", label: "Nested scrolling", scenario: "nested", mode: "Automatic", format: "JPEG", expected: "Top-level capture works; limitation is documented." },
+  { id: "wide", group: "Limitations", label: "Horizontal overflow", scenario: "wide", mode: "Automatic", format: "JPEG", expected: "No crash; clipped horizontal area is documented." },
+  { id: "motion", group: "Limitations", label: "Moving content", scenario: "motion", mode: "Automatic", format: "JPEG", expected: "No hang; motion artifacts allowed and documented." },
+  { id: "locale-fr", group: "Interface", label: "French locale", scenario: "baseline", mode: "Automatic", format: "JPEG", expected: "Settings, progress, export and error strings in French." },
+  { id: "discard", group: "Interface", label: "Discard and cleanup", scenario: "long", mode: "Split by limits", format: "JPEG", expected: "Discard removes staged parts and initiates no extra download." },
+  { id: "failure-dialog", group: "Interface", label: "Persistent error dialog", scenario: "long", mode: "Single Image", format: "PNG", expected: "If a capture fails, error stays until Close; scroll restored." },
+]);
+
+export const SCENARIO_IDS = Object.freeze(SCENARIOS.map((scenario) => scenario.id));
+export function scenarioById(id) {
+  return SCENARIOS.find((scenario) => scenario.id === id) ?? SCENARIOS[0];
+}
