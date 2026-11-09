@@ -451,6 +451,9 @@
         writer.start = writer.covered;
         return;
       } catch {
+        if (writer.settings.mode === "single") {
+          throw new Error("A single image cannot fit this device's canvas. Choose Automatic export.");
+        }
         height = Math.floor(height / 2);
       }
     }
