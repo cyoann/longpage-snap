@@ -20,10 +20,14 @@
 
     function compare(delta) {
       const candidateTop = nominalTop + delta;
-      if (candidateTop < 0) return null;
+      if (candidateTop < 0) {
+        return null;
+      }
       const from = Math.max(previousTop, candidateTop, covered - 116);
       const to = Math.min(covered - 3, candidateTop + nextHeight - 3);
-      if (to - from < minimumOverlap) return null;
+      if (to - from < minimumOverlap) {
+        return null;
+      }
       let sum = 0;
       let count = 0;
       for (let y = from; y < to; y += 3) {
@@ -42,12 +46,18 @@
     }
 
     const nominal = compare(0);
-    if (!nominal) return { delta: 0, confidence: "unavailable" };
+    if (!nominal) {
+      return { delta: 0, confidence: "unavailable" };
+    }
     let best = nominal;
     for (let delta = -span; delta <= span; delta += 1) {
-      if (!delta) continue;
+      if (!delta) {
+        continue;
+      }
       const candidate = compare(delta);
-      if (!candidate) continue;
+      if (!candidate) {
+        continue;
+      }
       // Avoid arbitrary corrections on flat/uninformative sections.
       if (candidate.error + Math.abs(delta) * 0.008 <
           best.error + Math.abs(best.delta) * 0.008) {
