@@ -211,5 +211,11 @@
   },
   "doneTitle": {
     "message": "Prêt à enregistrer"
+  },
+  "captureFailedTitle": {
+    "message": "Capture interrompue"
+  },
+  "captureFailedHint": {
+    "message": "Aucun téléchargement n’a été lancé. Ce message reste affiché jusqu’à sa fermeture."
   }
 }
