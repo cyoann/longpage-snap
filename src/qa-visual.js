@@ -70,7 +70,7 @@
         number:index+1,
         top:rectangle.top+scrollY,height:rectangle.height,
         left:rectangle.left,
-        background:rgb(getComputedStyle(zone).backgroundColor),
+        background:rgb(globalThis.getComputedStyle(zone).backgroundColor),
         heading:heading&&{
           left:heading.left,top:heading.top+scrollY,
           width:heading.width,height:heading.height,
