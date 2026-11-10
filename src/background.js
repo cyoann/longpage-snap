@@ -297,6 +297,10 @@ async function runQa(tab, mode) {
     for (const testcase of cases) {
       try {
         await assertActive(tabId,tab.windowId);
+        const liveTab=await browser.tabs.get(tabId);
+        if (!qaRequest(liveTab.url)) {
+          throw new Error("QA stopped: the controlled test page was left.");
+        }
         const changed=await send(tabId,"qa-switch",{fixture:testcase.fixture});
         if (!changed?.switched) { throw new Error("Controlled fixture switch failed."); }
         const inspected=await capture(tab,qaSettings(base,testcase),testcase);
