@@ -6,6 +6,7 @@ import { nextScrollY } from "../src/capture-plan.js";
 
 const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
 const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
+const zipSource = readFileSync(new URL("../src/zip.js", import.meta.url), "utf8");
 
 function makeStyle() {
   const properties = new Map();
@@ -29,6 +30,7 @@ function makeStyle() {
 function harness({
   width, height, pageHeight, layoutHeight = height, storageError = false,
   growAtScrollY = Infinity, growToPageHeight = pageHeight,
+  enableZip = false, zipError = false,
 }) {
   const draws = [];
   const created = [];
@@ -36,6 +38,7 @@ function harness({
   const buttons = [];
   const staged = new Map();
   const messages = [];
+  const zipBlobs = new Map();
   let listener;
 
   function element(tag) {
@@ -136,6 +139,7 @@ function harness({
     innerWidth: width,
     innerHeight: height,
     visualViewport: null,
+    setTimeout() { return 1; },
     getComputedStyle: () => ({
       position: "static",
       visibility: "visible",
@@ -232,10 +236,25 @@ function harness({
     MutationObserver,
     Image,
     FileReader,
+    URL: {
+      createObjectURL(blob) {
+        if (zipError) {
+          throw new Error("Firefox rejected the ZIP blob");
+        }
+        const url = "blob:longpage-snap-test-" + (zipBlobs.size + 1);
+        zipBlobs.set(url, blob);
+        return url;
+      },
+      revokeObjectURL(url) { zipBlobs.delete(url); },
+    },
+    Blob, TextEncoder, atob, Uint32Array, Uint8Array,
     requestAnimationFrame: (callback) => queueMicrotask(callback),
     console,
   });
   vm.runInContext(locales, sandbox);
+  if (enableZip) {
+    vm.runInContext(zipSource, sandbox);
+  }
   vm.runInContext(script, sandbox);
 
   return {
@@ -244,6 +263,7 @@ function harness({
     downloads,
     staged,
     messages,
+    zipBlobs,
     buttons,
     window,
     request(type, fields = {}) {
@@ -281,7 +301,10 @@ async function runCapture(config) {
   const { parts } = await app.request("finalize");
   assert.equal(app.downloads.length, 0, "All frames are staged before export");
   assert.equal(app.staged.size, parts);
-  await app.request("complete", { filename, parts, exportId: "test-export" });
+  await app.request("complete", {
+    filename, parts, exportId: "test-export",
+    zipEligible: Boolean(config.allowZip),
+  });
   assert.equal(app.window.scrollY, 0, "Page position restored before download");
 
   return { ...app, parts, lastState };
@@ -569,4 +592,68 @@ test("closing a failed capture releases the pending recovery offer", async () =>
     0,
     "Dismissing the dialog must not start an automatic capture",
   );
+});
+
+test("multi-image export offers one ZIP, then retains files until Close", async () => {
+  const app = await runCapture({
+    width: 5000, height: 300, pageHeight: 800,
+    enableZip: true, allowZip: true,
+    captureSettings: { mode: "split", maxWidth: 10000 },
+  });
+  assert.equal(app.parts, 2);
+  assert.equal(app.downloads.length, 0);
+  assert.equal(app.staged.size, 2);
+  await clickButton(app, "Save all as ZIP");
+  assert.equal(app.downloads.length, 1,
+    "A single ZIP should replace two individual Firefox download prompts");
+  assert.equal(app.downloads[0].filename, "longpage-snap-Test.zip");
+  assert.match(app.downloads[0].href, /^blob:longpage-snap-test-/);
+  const blob = app.zipBlobs.get(app.downloads[0].href);
+  assert.ok(blob, "ZIP object URL must keep the Blob available");
+  assert.equal(blob.type, "application/zip");
+  assert.equal(app.staged.size, 2,
+    "Keep original parts until user confirms the export is finished");
+  await clickButton(app, "Close");
+  assert.equal(app.staged.size, 0);
+});
+
+test("ZIP mode offers separate images and does not change persisted export mode", async () => {
+  const app = await runCapture({
+    width: 5000, height: 300, pageHeight: 800,
+    enableZip: true, allowZip: true,
+    captureSettings: { mode: "split", maxWidth: 10000, language: "fr" },
+  });
+  await clickButton(app, "Enregistrer les images séparément");
+  await clickButton(app, "Enregistrer l’image 1 sur 2");
+  await clickButton(app, "Enregistrer l’image 2 sur 2");
+  assert.equal(app.downloads.length, 2);
+  assert.ok(app.downloads.every((part) => part.filename.includes("-part-")));
+});
+
+test("rejected ZIP downloads can fall back to normal individual saves", async () => {
+  const app = await runCapture({
+    width: 5000, height: 300, pageHeight: 800,
+    enableZip: true, zipError: true, allowZip: true,
+    captureSettings: { mode: "split", maxWidth: 10000 },
+  });
+  await clickButton(app, "Save all as ZIP");
+  assert.equal(app.downloads.length, 0);
+  assert.equal(app.staged.size, 2,
+    "ZIP errors must not discard the original screenshots");
+  await clickButton(app, "Save images individually");
+  await clickButton(app, "Save image 1 of 2");
+  assert.equal(app.downloads.length, 1);
+});
+
+test("ZIP option is absent above the memory budget", async () => {
+  const app = await runCapture({
+    width: 5000, height: 300, pageHeight: 800,
+    enableZip: true, allowZip: false,
+    captureSettings: { mode: "split", maxWidth: 10000 },
+  });
+  assert.equal(app.parts, 2);
+  assert.ok(!app.buttons.some((button) =>
+    button.textContent === "Save all as ZIP"));
+  await clickButton(app, "Save image 1 of 2");
+  assert.equal(app.downloads.length, 1);
 });
