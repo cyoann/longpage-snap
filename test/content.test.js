@@ -8,6 +8,7 @@ const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8
 const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
 const zipSource = readFileSync(new URL("../src/zip.js", import.meta.url), "utf8");
 const traceSource = readFileSync(new URL("../src/capture-diagnostics.js", import.meta.url), "utf8");
+const viewportSource = readFileSync(new URL("../src/viewport-bounds.js", import.meta.url), "utf8");
 
 function makeStyle() {
   const properties = new Map();
@@ -32,6 +33,7 @@ function harness({
   width, height, pageHeight, layoutHeight = height, storageError = false,
   growAtScrollY = Infinity, growToPageHeight = pageHeight,
   enableZip = false, zipError = false, enableTrace = false,
+  screenshotHeight = height, viewportLagAtBottom = 0,
 }) {
   const draws = [];
   const created = [];
@@ -169,10 +171,21 @@ function harness({
     },
   };
 
+  if (viewportLagAtBottom) {
+    window.visualViewport = {
+      width, height, scale: 1,
+      get pageTop() {
+        return window.scrollY >= root.scrollHeight - layoutHeight - 1
+          ? window.scrollY - viewportLagAtBottom
+          : window.scrollY;
+      },
+    };
+  }
+
   let now = 0;
   class Image {
     naturalWidth = width;
-    naturalHeight = height;
+    naturalHeight = screenshotHeight;
     set src(_value) {
       queueMicrotask(() => this.onload());
     }
@@ -259,6 +272,7 @@ function harness({
     console,
   });
   vm.runInContext(locales, sandbox);
+  vm.runInContext(viewportSource, sandbox);
   if (enableZip) {
     vm.runInContext(zipSource, sandbox);
   }
@@ -704,4 +718,27 @@ test("ordinary pages do not expose or record capture diagnostics", async () => {
     button.textContent === "Download diagnostics JSON" &&
     button.style.display === "block"),
   "The diagnostics control must remain hidden outside the lab");
+});
+
+test("Android viewport height excess cannot consume unseen Zone 11 title rows", async () => {
+  const app = await runCapture({
+    width: 400, height: 643, screenshotHeight: 707,
+    layoutHeight: 643, pageHeight: 3334, viewportLagAtBottom: 64.4,
+    captureSettings: { mode: "single" },
+  });
+  assert.equal(app.parts, 1);
+  assert.ok(app.lastState.remainingPixels <= 2);
+  const draws = app.draws.filter((args) => args.length === 9);
+  assert.ok(draws.length >= 6, "Viewport cropping must produce actual scroll overlap");
+  const fragments = draws.map((args) => [args[6], args[6] + args[8]]);
+  fragments.sort((a, b) => a[0] - b[0]);
+  let covered = 0;
+  for (const [from, to] of fragments) {
+    assert.ok(from <= covered + 1, "Missing vertical content at Y=" + covered);
+    covered = Math.max(covered, to);
+  }
+  assert.ok(covered >= 3332, "The footer must be covered");
+  const headingTop = 2930;
+  assert.ok(fragments.some(([from, to]) => from <= headingTop && to >= 2990),
+    "Zone 11 heading must belong to a valid, newly drawn frame");
 });

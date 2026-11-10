@@ -61,7 +61,7 @@ async function capture(tab, temporarySettings = null) {
     await recordExport(job.id, tabId, 0);
     await browser.scripting.executeScript({
       target: { tabId },
-      files: ["src/locales.js", "src/frame-registration.js", "src/zip.js", "src/capture-diagnostics.js", "src/content.js"],
+      files: ["src/locales.js", "src/frame-registration.js", "src/zip.js", "src/capture-diagnostics.js", "src/viewport-bounds.js", "src/content.js"],
     });
 
     const preferences = await browser.storage.local.get("settings");
