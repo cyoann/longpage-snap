@@ -3,7 +3,7 @@
 (() => {
   const SCOPE = "longpage-snap";
   const MAX_PARTS = 80;
-  const MAX_MARKERS = 72;
+  const MAX_MARKERS = 80;
   const MIB = 1024 * 1024;
   const FORMAT_MIME = Object.freeze({
     jpeg:"image/jpeg", png:"image/png", webp:"image/webp",
@@ -82,13 +82,17 @@
     const py = r.y * scale - partTop;
     const pw = Math.max(1, r.width * scale);
     const ph = Math.max(1, r.height * scale);
-    if (py < -1 || py + ph > img.naturalHeight + 1) {
+    const upper = Math.max(0, py);
+    const lower = Math.min(img.naturalHeight, py + ph);
+    if (lower - upper < Math.min(6, ph * 0.30)) {
       return null;
     }
     const sx = marker.kind === "color" ? px : px + Math.max(0, pw * 0.05);
-    const sy = marker.kind === "color" ? py : py + Math.max(0, ph * 0.14);
+    const sy = marker.kind === "color" ? upper :
+      Math.max(upper, py + Math.max(0, ph * 0.14));
     const sw = marker.kind === "color" ? Math.max(1, scale) : pw * 0.9;
-    const sh = marker.kind === "color" ? Math.max(1, scale) : ph * 0.72;
+    const sh = marker.kind === "color" ? Math.max(1, scale) :
+      Math.max(1, Math.min(lower, py + ph * 0.86) - sy);
     const cw = marker.kind === "color" ? 1 : 40;
     const ch = marker.kind === "color" ? 1 : 16;
     context.canvas.width = cw;
@@ -171,7 +175,7 @@
             }
             const y = marker.rect.y * scale;
             const lower = (marker.rect.y + marker.rect.height) * scale;
-            if (y < partTop || lower > partTop + img.naturalHeight) {
+            if (lower <= partTop || y >= partTop + img.naturalHeight) {
               continue;
             }
             try {
