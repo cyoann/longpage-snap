@@ -1,20 +1,16 @@
-import { scenarioById } from "./data.js";
+import { scenarioById, SCENARIO_IDS } from "./data.js";
 
 const params = new URLSearchParams(location.search);
-const scenario = scenarioById(params.get("case") || "baseline");
 const zones = document.getElementById("zones");
 const finishDetails = document.getElementById("finish-details");
 const tag = document.getElementById("fixture-label");
-
-document.title = scenario.title + " · LongPage Snap test fixture";
-document.getElementById("fixture-name").textContent = scenario.title;
-document.getElementById("fixture-description").textContent = scenario.description;
-document.getElementById("fixture-expectation").textContent = "Expected: " + scenario.expected;
-document.getElementById("fixture-spec").textContent =
-  "CASE=" + scenario.id.toUpperCase() + " · zones=" +
-  (scenario.sections + (scenario.extraSections || 0)) +
-  " · css-height=" + scenario.sectionHeight + "px/zone";
-tag.textContent = scenario.id.toUpperCase();
+const stickySlot = document.getElementById("sticky-slot");
+const allowed = new Set(SCENARIO_IDS);
+let scenario;
+let observer;
+let growthListener;
+let motionTimer;
+let generation = 0;
 
 function addText(parent, tagName, className, content) {
   const node = document.createElement(tagName);
@@ -34,26 +30,6 @@ function svgLabel(number) {
     '<text x="300" y="82" text-anchor="middle" fill="#113e81" ' +
     'font-size="27" font-family="sans-serif" font-weight="bold">' + label + '</text></svg>';
   return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
-}
-
-let observer;
-if (scenario.id === "lazy") {
-  observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) {
-        continue;
-      }
-      observer.unobserve(entry.target);
-      const image = entry.target;
-      const zoneNumber = Number(image.dataset.zone);
-      // Fixed, bounded delay: no network requests or randomized timing.
-      setTimeout(() => {
-        image.src = svgLabel(zoneNumber);
-        image.closest(".lazy-box").querySelector(".lazy-state").textContent =
-          "LOADED " + String(zoneNumber).padStart(2, "0");
-      }, 80);
-    }
-  }, { rootMargin: "140px" });
 }
 
 function makeZone(number, extra = false) {
@@ -114,7 +90,7 @@ function makeZone(number, extra = false) {
     box.append(dot);
     const clock = addText(box, "span", "motion-clock", "FRAME +0");
     let frame = 0;
-    setInterval(() => {
+    motionTimer = setInterval(() => {
       clock.textContent = "FRAME +" + (++frame);
     }, 500);
     zone.append(box);
@@ -134,33 +110,112 @@ function appendRange(first, last, extra = false) {
     " · ZONES 01–" + String(last).padStart(2, "0");
 }
 
-appendRange(1, scenario.sections);
-
-if (scenario.id === "sticky") {
-  // The sticky element must itself be a direct child of body. Nesting it
-  // inside a short wrapper would end the sticky constraint immediately.
-  const sticky = document.getElementById("sticky-slot");
-  sticky.className = "sticky-test";
-  sticky.textContent = "STICKY HEADER — COUNT ONCE";
-  sticky.dataset.testSticky = "true";
-  const fixed = addText(document.body, "div", "fixed-test", "FIXED · COUNT ONCE");
-  fixed.dataset.testFixed = "true";
+function teardown() {
+  generation += 1;
+  observer?.disconnect();
+  observer = undefined;
+  if (growthListener) {
+    window.removeEventListener("scroll", growthListener);
+    growthListener = undefined;
+  }
+  if (motionTimer) {
+    clearInterval(motionTimer);
+    motionTimer = undefined;
+  }
+  document.querySelectorAll(".fixed-test[data-test-fixed]").forEach((el) => el.remove());
+  stickySlot.className = "";
+  stickySlot.textContent = "";
+  stickySlot.removeAttribute("data-test-sticky");
+  zones.replaceChildren();
+  document.documentElement.dataset.growth = "";
 }
 
-if (scenario.id === "growth") {
-  let grown = false;
-  const grow = () => {
-    if (grown || window.scrollY < 520) {
-      return;
-    }
-    grown = true;
-    window.removeEventListener("scroll", grow);
-    appendRange(scenario.sections + 1, scenario.sections + scenario.extraSections, true);
-    document.documentElement.dataset.growth = "complete";
-    document.getElementById("fixture-spec").textContent += " · growth=complete";
-  };
-  window.addEventListener("scroll", grow, { passive: true });
-  grow();
+function renderFixture(id, updateHistory = false) {
+  if (!allowed.has(id)) {
+    return false;
+  }
+  teardown();
+  scenario = scenarioById(id);
+  const currentGeneration = generation;
+  if (updateHistory) {
+    // Same-document history keeps Firefox activeTab permission alive. This
+    // enables an explicitly started, fully automatic test sequence without
+    // requesting access to unrelated sites.
+    const url = new URL(location.href);
+    url.searchParams.set("case", scenario.id);
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+  }
+  window.scrollTo({top:0,left:0,behavior:"instant"});
+  document.title = scenario.title + " · LongPage Snap test fixture";
+  document.getElementById("fixture-name").textContent = scenario.title;
+  document.getElementById("fixture-description").textContent = scenario.description;
+  document.getElementById("fixture-expectation").textContent = "Expected: " + scenario.expected;
+  document.getElementById("fixture-spec").textContent =
+    "CASE=" + scenario.id.toUpperCase() + " · zones=" +
+    (scenario.sections + (scenario.extraSections || 0)) +
+    " · css-height=" + scenario.sectionHeight + "px/zone";
+  tag.textContent = scenario.id.toUpperCase();
+
+  if (scenario.id === "lazy") {
+    observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) {
+          continue;
+        }
+        observer.unobserve(entry.target);
+        const img = entry.target;
+        const number = Number(img.dataset.zone);
+        setTimeout(() => {
+          if (generation !== currentGeneration || !img.isConnected) {
+            return;
+          }
+          img.src = svgLabel(number);
+          img.closest(".lazy-box").querySelector(".lazy-state").textContent =
+            "LOADED " + String(number).padStart(2, "0");
+        }, 80);
+      }
+    }, { rootMargin: "140px" });
+  }
+
+  appendRange(1, scenario.sections);
+
+  if (scenario.id === "sticky") {
+    stickySlot.className = "sticky-test";
+    stickySlot.textContent = "STICKY HEADER — COUNT ONCE";
+    stickySlot.dataset.testSticky = "true";
+    const fixed = addText(document.body, "div", "fixed-test", "FIXED · COUNT ONCE");
+    fixed.dataset.testFixed = "true";
+  }
+
+  if (scenario.id === "growth") {
+    let grown = false;
+    growthListener = () => {
+      if (grown || window.scrollY < 520 || generation !== currentGeneration) {
+        return;
+      }
+      grown = true;
+      window.removeEventListener("scroll", growthListener);
+      growthListener = undefined;
+      appendRange(scenario.sections + 1, scenario.sections + scenario.extraSections, true);
+      document.documentElement.dataset.growth = "complete";
+      document.getElementById("fixture-spec").textContent += " · growth=complete";
+    };
+    window.addEventListener("scroll", growthListener, { passive:true });
+    growthListener();
+  }
+
+  document.documentElement.dataset.fixtureCase = scenario.id;
+  document.documentElement.dataset.fixtureReady = "true";
+  return true;
 }
 
-document.documentElement.dataset.fixtureReady = "true";
+// Controlled fixture switching. It does not navigate, access network, modify
+// user data, or expose privileged WebExtension APIs to the website.
+document.addEventListener("longpage-snap:select-fixture", (event) => {
+  if (typeof event.detail !== "string") {
+    return;
+  }
+  renderFixture(event.detail, true);
+});
+
+renderFixture(params.get("case") || "baseline");
