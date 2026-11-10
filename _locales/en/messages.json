@@ -289,5 +289,8 @@
   },
   "qaDownload": {
     "message": "Save JSON test report"
+  },
+  "qaProgress": {
+    "message": "Automated test {n} of {total}"
   }
 }
