@@ -13,6 +13,14 @@
         document.getElementById("mode-description").textContent.includes("image") &&
         document.getElementById("custom-limits").hidden === false;
       preferencesSaved = window.__lastSavedSettings?.mode === "single";
+    } else if (kind === "qa") {
+      const shadow = document.documentElement.lastElementChild.shadowRoot;
+      panel = shadow?.querySelector(".panel");
+      buttons = shadow ? [...shadow.querySelectorAll("button")] : [];
+      translated = shadow?.querySelector("h2")?.textContent === "Tests de capture automatisés" &&
+        [...buttons].some((button) => button.textContent === "Lancer tous les tests") &&
+        [...buttons].some((button) => button.textContent === "Capturer cette page normalement") &&
+        shadow?.querySelector(".summary")?.textContent.includes("15 tests");
     } else {
       const shadow = document.documentElement.lastElementChild.shadowRoot;
       panel = shadow?.querySelector(".dialog");
