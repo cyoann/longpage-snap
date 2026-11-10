@@ -70,7 +70,7 @@ test("Android runner uses actual capture engine rather than fixture DOM-only che
   const background=readFileSync(new URL("../src/background.js",import.meta.url),"utf8");
   const content=readFileSync(new URL("../src/content.js",import.meta.url),"utf8");
   assert.ok(background.includes('send(tabId, "qa-validate"'));
-  assert.ok(background.includes('capture(tab,qaSettings(base,testcase),testcase)'));
+  assert.ok(background.includes('capture(tab,qaSettings(base,testcase),{'));
   assert.ok(background.includes('browser.tabs.captureVisibleTab'));
   assert.ok(content.includes('globalThis.LongPageSnapQaVisual.check(message)'));
   assert.ok(content.includes('qaReportHost'));
