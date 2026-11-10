@@ -374,7 +374,9 @@
     save.className = "primary";
     save.textContent = t("saveSingle");
     save.addEventListener("click", () => {
-      if (session?.export?.done) {
+      if (session?.failed && session.retryReady) {
+        void requestRecovery();
+      } else if (session?.export?.done) {
         void finishExport();
       } else {
         void downloadNext();
@@ -1039,18 +1041,67 @@
     return { ready: true };
   }
 
-  function fail(message) {
+  async function requestRecovery() {
+    const current = session;
+    if (!current?.failed || !current.retryReady || current.retrying) {
+      return;
+    }
+    current.retrying = true;
+    current.save.disabled = true;
+    current.cancel.disabled = true;
+    showOverlay(t("retryStarting"));
+    try {
+      const result = await browser.runtime.sendMessage({
+        scope: SCOPE, type: "retry-automatic",
+      });
+      if (!result?.accepted && session === current) {
+        current.retrying = false;
+        current.save.disabled = false;
+        current.cancel.disabled = false;
+        showOverlay(t("retryUnavailable"));
+      }
+      // When accepted, the background starts a new capture and begin()
+      // replaces this dialog; no stored preference was modified.
+    } catch {
+      if (session === current) {
+        current.retrying = false;
+        current.save.disabled = false;
+        current.cancel.disabled = false;
+        showOverlay(t("retryUnavailable"));
+      }
+    }
+  }
+
+  function offerRecovery(code) {
+    if (!session?.failed || session.failureCode !== code ||
+        code !== "single-image-limit" || session.retrying) {
+      return { offered: false };
+    }
+    session.retryReady = true;
+    session.save.textContent = t("retryAutomatic");
+    session.save.style.display = "block";
+    session.save.disabled = false;
+    session.description.textContent = t("singleLimitRetryHint");
+    return { offered: true };
+  }
+
+  function fail(message, code = null) {
     if (!session) {
       return;
     }
     session.failed = true;
+    session.failureCode = code;
+    session.retryReady = false;
+    session.retrying = false;
     restorePage();
     // Release the image buffer, but keep the error dialog until the user
     // explicitly closes it. Android screen recording may need time to read it.
     session.writer = null;
     session.title.textContent = t("captureFailedTitle");
-    session.description.textContent = t("captureFailedHint");
-    showOverlay(message);
+    session.description.textContent = code === "single-image-limit"
+      ? t("singleLimitRetryHint")
+      : t("captureFailedHint");
+    showOverlay(code === "single-image-limit" ? t("singleLimitMessage") : message);
     session.track.style.display = "none";
     session.save.style.display = "none";
     session.cancel.textContent = t("close");
@@ -1085,8 +1136,10 @@
       case "complete":
         return complete(message);
       case "fail":
-        fail(message.message);
+        fail(message.message, message.code);
         return Promise.resolve({ ok: true });
+      case "offer-retry":
+        return Promise.resolve(offerRecovery(message.code));
       case "cleanup":
         // Background has already cleared the temporary export records.
         // Do not dismiss the error panel as part of automatic cleanup.
