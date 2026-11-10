@@ -1350,6 +1350,82 @@
     session = null;
   }
 
+  // The QA panel is shown only after the user explicitly runs the suite
+  // from the exact controlled GitHub Pages fixture URL.
+  let qaReportHost = null;
+  function displayQaReport(report) {
+    qaReportHost?.remove();
+    dispose();
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;inset:0;z-index:2147483647;" +
+      "background:rgba(10,15,25,.66);display:grid;place-items:center;padding:16px";
+    const shadow = host.attachShadow({mode:"closed"});
+    const panel = document.createElement("section");
+    panel.style.cssText = "font:15px/1.5 system-ui;box-sizing:border-box;" +
+      "background:#f8f9fb;color:#121822;border-radius:12px;padding:24px;" +
+      "max-width:380px;width:100%;max-height:90vh;overflow-y:auto";
+    const title = document.createElement("h2");
+    title.textContent = t("qaFinished");
+    title.style.margin = "0 0 10px";
+    const summary = document.createElement("p");
+    summary.textContent = t("qaSummary", {
+      passed: report.totals.passed, failed:report.totals.failed,
+      blocked:report.totals.blocked,
+    });
+    const detail = document.createElement("p");
+    detail.textContent = t("qaLimitations");
+    detail.style.fontSize="13px";
+    const list = document.createElement("div");
+    for (const item of report.tests) {
+      const line=document.createElement("p");
+      line.textContent=(item.status==="pass"?"✓ ":"✗ ")+item.id+
+        " · "+item.status+(item.reason?" · "+item.reason:"");
+      line.style.fontSize="13px";
+      list.append(line);
+    }
+    const button = document.createElement("button");
+    button.textContent=t("qaDownload");
+    button.style.cssText = "width:100%;min-height:44px;border:0;border-radius:8px;" +
+      "background:#1756b1;color:#fff;font:600 14px system-ui";
+    button.addEventListener("click",()=>{
+      const blob=new globalThis.Blob([JSON.stringify(report,null,2)],{
+        type:"application/json",
+      });
+      const url=globalThis.URL.createObjectURL(blob);
+      const link=document.createElement("a");
+      link.href=url;link.download="longpage-snap-qa-"+report.mode+".json";
+      document.documentElement.append(link);
+      try {link.click();}finally{
+        link.remove();
+        window.setTimeout(()=>globalThis.URL.revokeObjectURL(url),120000);
+      }
+    });
+    const close=document.createElement("button");
+    close.textContent=t("close");
+    close.style.cssText="width:100%;min-height:44px;background:transparent;" +
+      "border:0;margin-top:12px;font:600 14px system-ui";
+    close.addEventListener("click",()=>{host.remove();qaReportHost=null;});
+    panel.append(title,summary,detail,list,button,close);
+    shadow.append(panel);
+    document.documentElement.append(host);
+    qaReportHost=host;
+    return {shown:true};
+  }
+
+  function switchQaFixture(id) {
+    if (!globalThis.LongPageSnapQaSuite?.qaAllowedScenario?.(id)) {
+      return {switched:false};
+    }
+    dispose();
+    qaReportHost?.remove();
+    document.dispatchEvent(new CustomEvent("longpage-snap:select-fixture",{
+      detail:id,
+    }));
+    return {
+      switched:document.documentElement.dataset.fixtureCase===id,
+    };
+  }
+
   browser.runtime.onMessage.addListener((message) => {
     if (message?.scope !== SCOPE) {
       return undefined;
@@ -1371,6 +1447,18 @@
         return Promise.resolve({ ok: true });
       case "offer-retry":
         return Promise.resolve(offerRecovery(message.code));
+      case "qa-switch":
+        return Promise.resolve(switchQaFixture(message.fixture));
+      case "qa-validate":
+        if (!session || !globalThis.LongPageSnapQaVisual) {
+          return Promise.reject(new Error("QA pixel validator not loaded."));
+        }
+        return globalThis.LongPageSnapQaVisual.check(message);
+      case "qa-report":
+        return Promise.resolve(displayQaReport(message.report));
+      case "qa-reset":
+        dispose();
+        return Promise.resolve({reset:true});
       case "cleanup":
         // Background has already cleared the temporary export records.
         // Do not dismiss the error panel as part of automatic cleanup.
