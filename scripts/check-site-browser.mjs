@@ -174,7 +174,7 @@ try {
 
   await check("Local image-verification controls render", async () => {
     await visit("/lab/verify.html", "!!document.querySelector('#inspect')");
-    const ok = await evaluate("!!document.querySelector('input[type=file][multiple]') && !!document.querySelector('#mode') && document.documentElement.scrollWidth<=390");
+    const ok = await evaluate("!!document.querySelector('input[type=file][multiple]') && document.querySelector('input[type=file]').accept.includes('.zip') && !!document.querySelector('#mode') && document.documentElement.scrollWidth<=390");
     if (!ok) {
       throw new Error("Missing file input / mode selector or horizontal overflow.");
     }
