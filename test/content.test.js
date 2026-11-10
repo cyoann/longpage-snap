@@ -588,13 +588,13 @@ test("overlapping screenshots refresh only the previous seam tail", async () => 
     enableSeamRepair: true, captureSettings: { mode: "single" },
   });
   const repairCalls = app.draws.filter((args) =>
-    args[1] > 0 && args[4] > 0 &&
-    args[2] === 320 && args[6] === 320
+    args[1] === 0 && args[3] === 320 &&
+    args[6] > 0 && args[7] === 320 && args[8] <= 32
   );
   assert.ok(repairCalls.length >= 1,
     "A newer overlapping screenshot must repaint the vulnerable seam tail");
   for (const call of repairCalls) {
-    assert.ok(call[4] <= 32,
+    assert.ok(call[8] <= 32,
       "Seam restoration must be limited to at most 32 output pixels");
   }
   assert.equal(app.parts, 1,
