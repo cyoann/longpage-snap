@@ -22,7 +22,7 @@ const htmlFiles = ["index.html", "lab/index.html", "lab/fixture.html", "lab/veri
 check("eight named fixtures and a complete release matrix", () => {
   assert.equal(SCENARIOS.length, 8);
   assert.equal(new Set(SCENARIOS.map((scenario) => scenario.id)).size, SCENARIOS.length);
-  assert.ok(CHECKS.length >= 16);
+  assert.ok(CHECKS.length >= 18);
   assert.equal(new Set(CHECKS.map((entry) => entry.id)).size, CHECKS.length);
   for (const entry of CHECKS) {
     assert.ok(SCENARIOS.some((scenario) => scenario.id === entry.scenario), entry.id);
