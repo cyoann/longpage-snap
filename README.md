@@ -1,4 +1,4 @@
-# LongPage Snap
+> Development preview 0.3.7 (stitching candidate).\n\n# LongPage Snap
 
 Lightweight full-page screenshots for Firefox on Android.
 
