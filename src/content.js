@@ -1448,6 +1448,15 @@
         return Promise.resolve({ ok: true });
       case "offer-retry":
         return Promise.resolve(offerRecovery(message.code));
+      case "qa-case":
+        if (session && Number.isInteger(message.index) &&
+            Number.isInteger(message.total)) {
+          session.title.textContent=t("qaProgress",{
+            n:message.index,total:message.total,
+          });
+          session.description.textContent=message.id;
+        }
+        return Promise.resolve({ok:true});
       case "qa-switch":
         return Promise.resolve(switchQaFixture(message.fixture));
       case "qa-validate":
