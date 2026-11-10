@@ -34,10 +34,13 @@ jobs:
           node --check docs/lab/lab.js
           node --check docs/lab/image-meta.js
           node --check docs/lab/verify.js
+          node --check docs/lab/zip-verify.js
           node --check scripts/check-site.mjs
           node --check scripts/check-site-browser.mjs
       - name: Validate pages, links, test data, file parsers
         run: node scripts/check-site.mjs
+      - name: Validate ZIP archive and integrity inspector
+        run: node --test test/zip.test.js
       - name: Mobile browser smoke tests (real 390px viewport)
         run: node scripts/check-site-browser.mjs
       - name: Upload site screenshots

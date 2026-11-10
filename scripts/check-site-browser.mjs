@@ -166,7 +166,7 @@ try {
   await check("Mobile lab with all eight fixtures and sixteen checks", async () => {
     await visit("/lab/", "document.querySelectorAll('#scenario-cards .card').length===8");
     const info = await evaluate("({cards:document.querySelectorAll('#scenario-cards .card').length, rows:document.querySelectorAll('#checklist tr').length, width:document.documentElement.clientWidth, overflow:document.documentElement.scrollWidth>390})");
-    if (info.cards !== 8 || info.rows !== 16 || info.width !== 390 || info.overflow) {
+    if (info.cards !== 8 || info.rows !== 18 || info.width !== 390 || info.overflow) {
       throw new Error(JSON.stringify(info));
     }
     await capture("lab-mobile");
@@ -174,7 +174,7 @@ try {
 
   await check("Local image-verification controls render", async () => {
     await visit("/lab/verify.html", "!!document.querySelector('#inspect')");
-    const ok = await evaluate("!!document.querySelector('input[type=file][multiple]') && !!document.querySelector('#mode') && document.documentElement.scrollWidth<=390");
+    const ok = await evaluate("!!document.querySelector('input[type=file][multiple]') && document.querySelector('input[type=file]').accept.includes('.zip') && !!document.querySelector('#mode') && document.documentElement.scrollWidth<=390");
     if (!ok) {
       throw new Error("Missing file input / mode selector or horizontal overflow.");
     }

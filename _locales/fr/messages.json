@@ -241,5 +241,32 @@
   },
   "retryUnavailable": {
     "message": "Impossible de relancer la capture. Fermez cette fenêtre et réessayez."
+  },
+  "saveZip": {
+    "message": "Tout enregistrer en ZIP"
+  },
+  "saveIndividually": {
+    "message": "Enregistrer les images séparément"
+  },
+  "zipOptionHint": {
+    "message": "{n} images prêtes. Enregistrez-les dans un seul fichier ZIP ou séparément."
+  },
+  "zipProgress": {
+    "message": "Préparation du ZIP · image {n} sur {total}"
+  },
+  "zipRequested": {
+    "message": "Téléchargement du ZIP demandé. Confirmez dans Firefox."
+  },
+  "zipReadyHint": {
+    "message": "Si Firefox bloque le téléchargement ZIP, choisissez l’enregistrement séparé."
+  },
+  "zipFailed": {
+    "message": "Impossible de créer le ZIP. Vous pouvez enregistrer les images séparément."
+  },
+  "zipUnavailable": {
+    "message": "L’export ZIP n’est pas disponible ici. Enregistrez les images séparément."
+  },
+  "zipTooLarge": {
+    "message": "Cette capture est trop volumineuse pour un ZIP sûr sur cet appareil. Enregistrez les images séparément."
   }
 }

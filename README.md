@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.6 (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.8 (ZIP export candidate) (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
 
 ## Features
 
@@ -56,7 +56,7 @@ For Firefox Nightly, use `org.mozilla.fenix`; for Beta, `org.mozilla.firefox_bet
 
 The [LongPage Snap test lab](https://cyoann.github.io/longpage-snap/lab/) is hosted from the repository's `main/docs` GitHub Pages source. Until Pages is enabled in repository settings, the link may be unavailable.
 
-The extension's **Settings → Test capture → Open test lab** link opens the lab directly in Firefox. The site includes eight deterministic capture fixtures, a 16-case release acceptance checklist (local results, exportable JSON), and an offline JPEG/PNG/WebP metadata validator.
+The extension's **Settings → Test capture → Open test lab** link opens the lab directly in Firefox. The site includes eight deterministic capture fixtures, an 18-case release acceptance checklist (local results, exportable JSON), and an offline JPEG/PNG/WebP metadata validator.
 
 The website cannot launch privileged extension actions, verify screenshot pixel completeness, or detect native Android download confirmation. These remain manual on-device acceptance checks; CI validates website routes, test fixture behavior and metadata parsing.
 
@@ -118,6 +118,16 @@ When a requested **Single Image** exceeds a known memory/dimension/file-size saf
 - **Safe failure recovery:** only known Single Image fit-limit errors offer this option. Security, download, storage, navigation and unrelated capture errors do not trigger it.
 - **One-shot token:** the failed job's staged files are cleaned up before the retry is offered, and only one retry can be launched per failed attempt.
 - **Android acceptance required:** verify French text, the retry button, multiple-image export and unchanged saved mode.
+
+## Experimental, memory-bounded ZIP export
+
+For multipart captures with up to **16 MiB of encoded image data** (maximum 80 files), the export dialog offers a **Save all as ZIP** action, with **Save images individually** as an alternative. The ZIP contains the original JPEG/PNG/WebP bytes using the ZIP **STORE** method (no duplicate compression) and is assembled locally without uploads or external dependencies.
+
+- The ZIP option is hidden when the capture exceeds the Android safety cap. The established sequential file-saving flow remains available.
+- If Firefox refuses to download the ZIP or the browser cannot build it, the user can still save each staged image separately. The parts remain in IndexedDB until Close or Discard.
+- Blob-backed ZIP download compatibility must be tested on Firefox Android before this is merged or advertised as a stable feature. Selecting Save all as ZIP makes one browser download request but cannot confirm the native prompt's acceptance.
+- The ZIP option does not alter saved capture settings or the format of the files inside the archive.
+- **Archive integrity is not image completeness:** the Android acceptance ZIP contained ten valid, CRC-correct JPEGs, but the last JPEG still missed the large FINISH heading due to the separate [stitching issue #5](https://github.com/cyoann/longpage-snap/issues/5). The lab's ZIP validator verifies bytes and part numbering, not visual fidelity.
 
 ## Known limitations
 

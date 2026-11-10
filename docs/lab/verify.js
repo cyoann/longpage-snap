@@ -1,4 +1,5 @@
 import { analyzeFile, assessFiles } from "./image-meta.js";
+import { inspectZip } from "./zip-verify.js";
 
 const fileInput = document.getElementById("files");
 const fileStatus = document.getElementById("files-status");
@@ -28,9 +29,41 @@ document.getElementById("inspect").addEventListener("click", async () => {
   warnings.replaceChildren();
   const files = Array.from(fileInput.files);
   if (!files.length) {
-    verdict.textContent = "Select one or more images first.";
+    verdict.textContent = "Select one or more images or a ZIP archive first.";
     return;
   }
+  const archives = files.filter((file) => /\.zip$/i.test(file.name));
+  if (archives.length) {
+    if (archives.length !== 1 || files.length !== 1) {
+      verdict.textContent = "Select exactly one ZIP file at a time.";
+      verdict.className = "bad";
+      return;
+    }
+    try {
+      verdict.textContent = "Checking ZIP members and CRC32 locally…";
+      const checked = await inspectZip(archives[0]);
+      for (const entry of checked.entries) {
+        const item = el("li");
+        item.append(el("strong", entry.name));
+        item.append(el("p", (entry.size / (1024 * 1024)).toFixed(2) +
+          " MiB · CRC32 " + (entry.valid ? "OK" : "FAILED"), "muted small"));
+        results.append(item);
+      }
+      verdict.className = checked.passed ? "ok" : "bad";
+      verdict.textContent = checked.passed
+        ? "ZIP integrity passed: " + checked.entries.length +
+          " consecutive screenshot files, all CRC32 values valid."
+        : "ZIP integrity failed: " + checked.errors.length + " issue(s).";
+      for (const error of checked.errors) {
+        warnings.append(el("p", "FAIL · " + error, "bad"));
+      }
+    } catch (error) {
+      verdict.className = "bad";
+      verdict.textContent = "Cannot inspect this ZIP: " + error.message;
+    }
+    return;
+  }
+
   const read = await Promise.all(files.map(analyzeFile));
   for (const record of read) {
     const item = el("li");
