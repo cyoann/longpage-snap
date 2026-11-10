@@ -77,6 +77,9 @@ export function classifyCapture(testCase, result) {
   if (testCase.expectMultiple && result.parts < 2) {
     return { status:"fail", reason:"Configured dimension limit did not produce multiple images." };
   }
+  if (testCase.checkZip && result.audit.zipSkipped) {
+    return { status:"manual", reason:"ZIP exceeds the device-safe limit; individual export remains available." };
+  }
   if (testCase.checkZip && !result.audit.zipVerified) {
     return { status:"fail", reason:"The in-memory ZIP was not verified." };
   }
@@ -86,12 +89,12 @@ export function classifyCapture(testCase, result) {
   };
 }
 
-export function newReport() {
+export function newReport(version) {
   return {
     schema:"longpage-snap-automated-qa/v1",
     startedAt:new Date().toISOString(),
     completedAt:null,
-    extensionVersion:browser.runtime.getManifest().version,
+    extensionVersion:String(version),
     suite:"full",
     results:[],
     metadata:{
