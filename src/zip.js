@@ -5,7 +5,7 @@
   const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
   const MAX_ENTRIES = 80;
   const CHUNK_CHARS = 65536; // Base64: divisible by 4; ~48 KiB decoded.
-  const encoder = new TextEncoder();
+  const encoder = new globalThis.TextEncoder();
   const table = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {
     let value = n;
@@ -73,7 +73,7 @@
       let crc = 0xffffffff;
       let actualSize = 0;
       for (let offset = 0; offset < encoded.length; offset += CHUNK_CHARS) {
-        const decoded = atob(encoded.slice(offset, offset + CHUNK_CHARS));
+        const decoded = globalThis.atob(encoded.slice(offset, offset + CHUNK_CHARS));
         const chunk = new Uint8Array(decoded.length);
         for (let i = 0; i < decoded.length; i += 1) {
           const value = decoded.charCodeAt(i);
@@ -148,7 +148,7 @@
       u16(end, 20, 0);
       this.pieces.push(end);
 
-      return new Blob(this.pieces, { type: "application/zip" });
+      return new globalThis.Blob(this.pieces, { type: "application/zip" });
     }
   }
 
