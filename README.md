@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.5 (Android alignment test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.6 (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
 
 ## Features
 
@@ -108,6 +108,16 @@ Image parts exceeding the optional encoded file-size limit are divided using pix
 This draft build introduces bounded overlap between consecutive screenshots and in-memory pixel matching. It targets a reproducible baseline failure where Android capture produced the correct image dimensions but compressed the FINISH footer, omitted its case/zone label, and added a white bottom strip. The earlier end-of-scroll spacer alone did not resolve the issue.
 
 A baseline capture is acceptable only when the three distinct footer lines (**FINISH**, **CASE BASELINE · ZONES 01–10**, and **LONGPAGE SNAP · END OF FIXTURE**) are visible and ordered. Testing with the phone is required; unit tests cannot establish that Android's actual viewport and toolbar behavior is corrected.
+
+## Single Image recovery (0.3.6)
+
+When a requested **Single Image** exceeds a known memory/dimension/file-size safety limit, the capture dialog explains the limitation in the extension's selected language and offers **Retry in Automatic mode**. Tapping it starts a fresh full-page capture with safe multiple-image splitting if necessary.
+
+- **Explicit action only:** no automatic switch from Single Image to multiple files.
+- **Temporary override:** only this retry uses Automatic. Saved image format, quality, and Single Image mode are unchanged.
+- **Safe failure recovery:** only known Single Image fit-limit errors offer this option. Security, download, storage, navigation and unrelated capture errors do not trigger it.
+- **One-shot token:** the failed job's staged files are cleaned up before the retry is offered, and only one retry can be launched per failed attempt.
+- **Android acceptance required:** verify French text, the retry button, multiple-image export and unchanged saved mode.
 
 ## Known limitations
 

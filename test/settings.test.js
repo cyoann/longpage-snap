@@ -9,6 +9,7 @@ import {
   useFileLimit,
   useDimensionLimit,
   shouldRetrySingleGrowth,
+  singleImageFallback,
 } from "../src/settings.js";
 
 test("normalizes incomplete and invalid preferences", () => {
@@ -88,4 +89,40 @@ test("retry a growing single-image page once, not arbitrary memory errors", () =
   assert.equal(shouldRetrySingleGrowth(settings, new Error("The operation is insecure."), 0), false);
   assert.equal(shouldRetrySingleGrowth(settings,
     new Error("The page grew beyond the single-image canvas limit. Select Automatic export."), 0), true);
+});
+
+test("known Single Image memory limits offer a one-shot Automatic fallback", () => {
+  const single = { ...DEFAULT_SETTINGS, mode: "single" };
+  const error = new Error("A readable single image cannot fit this device. Select Automatic or Multiple images.");
+  assert.deepEqual(singleImageFallback(single, error), {
+    code: "single-image-limit", mode: "automatic",
+  });
+  assert.equal(single.mode, "single", "Fallback planning must not mutate saved settings");
+  for (const reason of [
+    "A single image cannot fit this device's canvas. Choose Automatic export.",
+    "The page grew beyond the single-image canvas limit. Select Automatic export.",
+    "This page grew beyond the available single-image memory or dimension limit.",
+    "The single image exceeds the file-size limit. Raise the limit or select Automatic export.",
+  ]) {
+    assert.equal(singleImageFallback(single, Error(reason))?.mode, "automatic", reason);
+  }
+});
+
+test("do not offer retry for general errors or already Automatic captures", () => {
+  const single = { ...DEFAULT_SETTINGS, mode: "single" };
+  for (const error of [
+    "The operation is insecure.",
+    "Unexpected image segment.",
+    "Image 1 (temporary image storage): indexedDB transaction aborted.",
+    "Scrolling made no progress.",
+    "Screenshot alignment gap detected.",
+    "Canvas context unavailable.",
+    "The final section is outside Firefox's captured viewport.",
+  ]) {
+    assert.equal(singleImageFallback(single, Error(error)), null, error);
+  }
+  const memory = Error("A readable single image cannot fit this device.");
+  assert.equal(singleImageFallback({ ...single, mode: "automatic" }, memory), null);
+  assert.equal(singleImageFallback({ ...single, mode: "split" }, memory), null);
+  assert.equal(singleImageFallback(undefined, memory), null);
 });

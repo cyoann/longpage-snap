@@ -23,7 +23,12 @@
         danger.getBoundingClientRect().top -
           primary.getBoundingClientRect().bottom >= 16;
       translated = shadow?.querySelector(".settings")?.textContent === "Paramètres" &&
-        shadow?.querySelector(".primary")?.textContent === "Enregistrer l’image 1 sur 2";
+        (kind === "retry"
+          ? shadow?.querySelector(".primary")?.textContent === "Réessayer en mode automatique" &&
+            shadow?.querySelector(".title")?.textContent === "Capture interrompue" &&
+            shadow?.querySelector(".status")?.textContent.includes("une seule image lisible") &&
+            shadow?.querySelector(".description")?.textContent.includes("inchangée")
+          : shadow?.querySelector(".primary")?.textContent === "Enregistrer l’image 1 sur 2");
     }
     buttons = buttons.filter((button) => !button.disabled &&
       button.getClientRects().length > 0);

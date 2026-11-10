@@ -78,7 +78,12 @@
     "captureFailedHint": "No download was started. This error stays visible until you close it.",
     "testLabTitle": "Test capture",
     "testLabHint": "Run controlled pages and inspect results before a release.",
-    "testLabLink": "Open test lab"
+    "testLabLink": "Open test lab",
+    "singleLimitMessage": "This page is too large for one readable image on this device.",
+    "singleLimitRetryHint": "Retry this capture in Automatic mode. It may create several images. Your saved Single Image setting will not change.",
+    "retryAutomatic": "Retry in Automatic mode",
+    "retryStarting": "Starting a new capture with safe image splitting…",
+    "retryUnavailable": "The retry could not start. Close this dialog and try again."
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -156,7 +161,12 @@
     "captureFailedHint": "Aucun téléchargement n’a été lancé. Ce message reste affiché jusqu’à sa fermeture.",
     "testLabTitle": "Tester les captures",
     "testLabHint": "Utilisez des pages de test et vérifiez les résultats avant une version.",
-    "testLabLink": "Ouvrir le laboratoire"
+    "testLabLink": "Ouvrir le laboratoire",
+    "singleLimitMessage": "Cette page est trop longue pour tenir dans une seule image lisible sur cet appareil.",
+    "singleLimitRetryHint": "Réessayez cette capture en mode automatique. Plusieurs images pourront être créées. Votre préférence « Une seule image » restera inchangée.",
+    "retryAutomatic": "Réessayer en mode automatique",
+    "retryStarting": "Nouvelle capture avec découpage adapté à l’appareil…",
+    "retryUnavailable": "Impossible de relancer la capture. Fermez cette fenêtre et réessayez."
   }
 };
   const locale = (choice, detected = "") => {

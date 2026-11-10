@@ -1,6 +1,6 @@
 import { screenshotFilename } from "./filename.js";
 import { nextScrollY } from "./capture-plan.js";
-import { extensionFor, normalizeSettings, shouldRetrySingleGrowth } from "./settings.js";
+import { extensionFor, normalizeSettings, shouldRetrySingleGrowth, singleImageFallback } from "./settings.js";
 import {
   clearExport,
   pruneExports,
@@ -13,6 +13,7 @@ import {
 
 const SCOPE = "longpage-snap";
 const jobs = new Map();
+const retryOffers = new Map();
 
 function send(tabId, type, details = {}) {
   return browser.tabs.sendMessage(tabId, { scope: SCOPE, type, ...details });
@@ -34,7 +35,7 @@ async function discard(tabId, job) {
   }
 }
 
-async function capture(tab) {
+async function capture(tab, temporarySettings = null) {
   const { id: tabId, windowId } = tab;
   if (!Number.isInteger(tabId) || !Number.isInteger(windowId) || jobs.has(tabId)) {
     return;
@@ -48,6 +49,9 @@ async function capture(tab) {
     parts: 0,
   };
   jobs.set(tabId, job);
+  retryOffers.delete(tabId);
+  let settings;
+  let retryOffer = null;
 
   try {
     await pruneExports();
@@ -58,7 +62,7 @@ async function capture(tab) {
     });
 
     const preferences = await browser.storage.local.get("settings");
-    const settings = normalizeSettings(preferences.settings);
+    settings = temporarySettings ?? normalizeSettings(preferences.settings);
     job.started = true;
     const page = await send(tabId, "begin", { settings });
     const filename = screenshotFilename(page.title).replace(/\.jpg$/i, "." + extensionFor(settings.format));
@@ -146,9 +150,10 @@ async function capture(tab) {
     // User-initiated cancellation is not an error and should close the panel.
     if (!job.cancelled) {
       const message = error instanceof Error ? error.message : "Capture failed.";
+      retryOffer = temporarySettings ? null : singleImageFallback(settings, error);
       console.error("LongPage Snap:", message);
       if (job.started) {
-        await send(tabId, "fail", { message }).catch(() => {});
+        await send(tabId, "fail", { message, code: retryOffer?.code ?? null }).catch(() => {});
       }
     }
   } finally {
@@ -157,6 +162,23 @@ async function capture(tab) {
         await send(tabId, "cleanup").catch(() => {});
       }
       await discard(tabId, job);
+      // Offer the recovery only AFTER cleanup finishes and the previous job
+      // has left the jobs map, so tapping Retry can start a fresh capture.
+      if (retryOffer && !job.cancelled) {
+        try {
+          await assertActive(tabId, windowId);
+          retryOffers.set(tabId, {
+            windowId,
+            settings: { ...settings, mode: retryOffer.mode },
+          });
+          const result = await send(tabId, "offer-retry", { code: retryOffer.code });
+          if (!result?.offered) {
+            retryOffers.delete(tabId);
+          }
+        } catch {
+          retryOffers.delete(tabId);
+        }
+      }
     }
   }
 }
@@ -171,6 +193,25 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 
   const tabId = sender.tab?.id;
+  if (message.type === "dismiss-retry") {
+    retryOffers.delete(tabId);
+    return Promise.resolve({ dismissed: true });
+  }
+  if (message.type === "retry-automatic") {
+    const offer = retryOffers.get(tabId);
+    if (!offer || jobs.has(tabId)) {
+      return Promise.resolve({ accepted: false });
+    }
+    // A retry token is consumed once. No saved preference is changed.
+    retryOffers.delete(tabId);
+    return browser.tabs.get(tabId).then((tab) => {
+      if (!tab.active || tab.windowId !== offer.windowId) {
+        return { accepted: false };
+      }
+      void capture(tab, offer.settings);
+      return { accepted: true };
+    }).catch(() => ({ accepted: false }));
+  }
   const job = jobs.get(tabId);
 
   switch (message.type) {
@@ -209,6 +250,7 @@ browser.action.onClicked.addListener((tab) => {
 });
 
 function releaseTab(tabId) {
+  retryOffers.delete(tabId);
   const job = jobs.get(tabId);
   if (job) {
     job.cancelled = true;

@@ -35,6 +35,7 @@ function harness({
   const downloads = [];
   const buttons = [];
   const staged = new Map();
+  const messages = [];
   let listener;
 
   function element(tag) {
@@ -202,6 +203,7 @@ function harness({
     runtime: {
       onMessage: { addListener(callback) { listener = callback; } },
       async sendMessage(message) {
+        messages.push(message);
         switch (message.type) {
           case "stage":
             if (storageError) {
@@ -241,6 +243,7 @@ function harness({
     draws,
     downloads,
     staged,
+    messages,
     buttons,
     window,
     request(type, fields = {}) {
@@ -509,4 +512,61 @@ test("a new capture dismisses a previous error panel", async () => {
   await app.request("begin");
   assert.equal(overlay.isConnected, false, "Old errors must not block a new capture");
   await app.request("cleanup");
+});
+
+test("French one-time Automatic recovery appears only after cleanup", async () => {
+  const app = harness({ width: 390, height: 600, pageHeight: 5000 });
+  await app.request("begin", { settings: { mode: "single", language: "fr" } });
+  const reason = "A readable single image cannot fit this device. Select Automatic or Multiple images.";
+  await app.request("fail", { message: reason, code: "single-image-limit" });
+  const retryLabel = "Réessayer en mode automatique";
+  const retry = app.buttons.find((button) => button.textContent === retryLabel);
+  assert.equal(retry, undefined, "Retry must not appear before cleanup");
+  await app.request("cleanup");
+  const result = await app.request("offer-retry", { code: "single-image-limit" });
+  assert.equal(result.offered, true);
+  const primary = app.buttons.find((button) => button.textContent === retryLabel);
+  assert.ok(primary, "French retry action must be visible and actionable");
+  assert.equal(primary.style.display, "block");
+  const panel = app.created.find((element) =>
+    element.tag === "p" &&
+    element.textContent?.includes("une seule image lisible"));
+  assert.ok(panel, "The original English memory advice must be translated");
+  await clickButton(app, retryLabel);
+  assert.equal(app.messages.filter((message) => message.type === "retry-automatic").length, 1);
+  await clickButton(app, retryLabel);
+  assert.equal(app.messages.filter((message) => message.type === "retry-automatic").length, 1,
+    "Repeated taps must not request multiple captures");
+});
+
+test("non-recoverable failures do not offer Automatic retry", async () => {
+  const app = harness({ width: 390, height: 600, pageHeight: 5000 });
+  await app.request("begin", { settings: { mode: "single", language: "fr" } });
+  await app.request("fail", { message: "The operation is insecure.", code: null });
+  await app.request("cleanup");
+  const result = await app.request("offer-retry", { code: "single-image-limit" });
+  assert.equal(result.offered, false);
+  assert.ok(!app.buttons.some((button) => button.textContent === "Réessayer en mode automatique"));
+});
+
+test("closing a failed capture releases the pending recovery offer", async () => {
+  const app = harness({ width: 390, height: 600, pageHeight: 5000 });
+  await app.request("begin", { settings: { mode: "single", language: "fr" } });
+  await app.request("fail", {
+    message: "A readable single image cannot fit this device.",
+    code: "single-image-limit",
+  });
+  await app.request("cleanup");
+  await app.request("offer-retry", { code: "single-image-limit" });
+  await clickButton(app, "Fermer");
+  assert.equal(
+    app.messages.filter((message) => message.type === "dismiss-retry").length,
+    1,
+    "Closing the dialog should invalidate background retry authorization",
+  );
+  assert.equal(
+    app.messages.filter((message) => message.type === "retry-automatic").length,
+    0,
+    "Dismissing the dialog must not start an automatic capture",
+  );
 });

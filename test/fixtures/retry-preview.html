@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-preview="retry">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LongPage Snap — recoverable error visual test</title>
+  <style>
+    html,body {margin:0;padding:0;font:16px/1.5 system-ui;}
+    body {background:#f7f7f7;color:#202020;padding:16px;}
+  </style>
+</head>
+<body>
+  <main><h1>Long-page capture preview</h1>
+    <p>Control page behind an extension recovery dialog.</p>
+  </main>
+  <script src="/test/fixtures/mock-browser.js"></script>
+  <script src="/src/locales.js"></script>
+  <script src="/src/content.js"></script>
+  <script>
+    (async () => {
+      await window.captureMessage({
+        scope:"longpage-snap", type:"begin", settings:{mode:"single",language:"fr"},
+      });
+      await window.captureMessage({
+        scope:"longpage-snap", type:"fail",
+        message:"A readable single image cannot fit this device. Select Automatic or Multiple images.",
+        code:"single-image-limit",
+      });
+      await window.captureMessage({scope:"longpage-snap",type:"cleanup"});
+      await window.captureMessage({
+        scope:"longpage-snap",type:"offer-retry",code:"single-image-limit",
+      });
+    })();
+  </script>
+  <script src="/test/fixtures/mobile-metrics.js"></script>
+</body>
+</html>
