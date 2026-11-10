@@ -127,6 +127,7 @@ For multipart captures with up to **16 MiB of encoded image data** (maximum 80 f
 - If Firefox refuses to download the ZIP or the browser cannot build it, the user can still save each staged image separately. The parts remain in IndexedDB until Close or Discard.
 - Blob-backed ZIP download compatibility must be tested on Firefox Android before this is merged or advertised as a stable feature. Selecting Save all as ZIP makes one browser download request but cannot confirm the native prompt's acceptance.
 - The ZIP option does not alter saved capture settings or the format of the files inside the archive.
+- **Archive integrity is not image completeness:** the Android acceptance ZIP contained ten valid, CRC-correct JPEGs, but the last JPEG still missed the large FINISH heading due to the separate [stitching issue #5](https://github.com/cyoann/longpage-snap/issues/5). The lab's ZIP validator verifies bytes and part numbering, not visual fidelity.
 
 ## Known limitations
 
