@@ -119,6 +119,14 @@ When a requested **Single Image** exceeds a known memory/dimension/file-size saf
 - **One-shot token:** the failed job's staged files are cleaned up before the retry is offered, and only one retry can be launched per failed attempt.
 - **Android acceptance required:** verify French text, the retry button, multiple-image export and unchanged saved mode.
 
+## Experimental seam-integrity repair
+
+The overlap matching code in Firefox Android v0.3.6 still discards overlapping pixels from the new screenshot. In the Lazy and Sticky test fixtures, the tail of an old screenshot can have blank text rows that the next screenshot correctly renders, but never replaces.
+
+This branch keeps pixel alignment and refreshes **at most 32 output pixels**, immediately before a stitch boundary, from the newer screenshot. It runs only with at least 32 pixels of overlap and never changes already exported image parts or the Single Image file count.
+
+The regression fixtures and unit tests do not prove an Android fix: the Lazy FINISH title and Sticky Zone 11 heading must be re-captured on physical Firefox Android before merging.
+
 ## Known limitations
 
 - Only the top-level document's vertical scrolling is supported; nested scrollers and horizontal overflow are excluded.
