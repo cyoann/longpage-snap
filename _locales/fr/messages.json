@@ -226,5 +226,20 @@
   },
   "testLabLink": {
     "message": "Ouvrir le laboratoire"
+  },
+  "singleLimitMessage": {
+    "message": "Cette page est trop longue pour tenir dans une seule image lisible sur cet appareil."
+  },
+  "singleLimitRetryHint": {
+    "message": "Réessayez cette capture en mode automatique. Plusieurs images pourront être créées. Votre préférence « Une seule image » restera inchangée."
+  },
+  "retryAutomatic": {
+    "message": "Réessayer en mode automatique"
+  },
+  "retryStarting": {
+    "message": "Nouvelle capture avec découpage adapté à l’appareil…"
+  },
+  "retryUnavailable": {
+    "message": "Impossible de relancer la capture. Fermez cette fenêtre et réessayez."
   }
 }
