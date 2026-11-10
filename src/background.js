@@ -1,5 +1,6 @@
 import { screenshotFilename } from "./filename.js";
 import { nextScrollY } from "./capture-plan.js";
+import { isFixtureTab, RUN_CASES, selectSettings, classifyCapture, newReport, completeReport } from "./qa-suite.js";
 import { extensionFor, normalizeSettings, shouldRetrySingleGrowth, singleImageFallback } from "./settings.js";
 import {
   clearExport,
@@ -16,6 +17,7 @@ const ZIP_MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const ZIP_MAX_ENTRIES = 80;
 const jobs = new Map();
 const retryOffers = new Map();
+const runningSuites = new Map();
 
 function send(tabId, type, details = {}) {
   return browser.tabs.sendMessage(tabId, { scope: SCOPE, type, ...details });
@@ -37,10 +39,10 @@ async function discard(tabId, job) {
   }
 }
 
-async function capture(tab, temporarySettings = null) {
+async function capture(tab, temporarySettings = null, automatedCase = null) {
   const { id: tabId, windowId } = tab;
   if (!Number.isInteger(tabId) || !Number.isInteger(windowId) || jobs.has(tabId)) {
-    return;
+    return automatedCase ? {ok:false,error:"Another capture is already running."} : undefined;
   }
 
   const job = {
@@ -136,6 +138,18 @@ async function capture(tab, temporarySettings = null) {
         if (settings.mode === "single" && parts !== 1) {
           throw new Error("Single Image could not fit into one file. Choose Automatic export.");
         }
+        if (automatedCase) {
+          // No native Android downloads, no saved settings mutations.
+          // Validate the actual encoded images while they are staged.
+          const audit = await send(tabId, "suite-audit", {
+            exportId:job.id, parts, format:settings.format,
+            scenario:automatedCase.scenario, zones:automatedCase.zones,
+            mode:settings.mode, limits:settings.limits,
+            maxHeight:settings.maxHeight, maxFileMiB:settings.maxFileMiB,
+            checkZip:Boolean(automatedCase.checkZip), scale:state.scale,
+          });
+          return {ok:Boolean(audit?.valid),parts,audit};
+        }
         await recordExport(job.id, tabId, parts);
         job.exporting = true;
         try {
@@ -154,6 +168,13 @@ async function capture(tab, temporarySettings = null) {
       targetY = nextScrollY(state.coveredPixels, state.scale, geometry.height);
     }
   } catch (error) {
+    if (automatedCase) {
+      return {
+        ok:false,
+        error:job.cancelled ? "Automated test cancelled." :
+          error instanceof Error ? error.message : "Automated capture failed.",
+      };
+    }
     // User-initiated cancellation is not an error and should close the panel.
     if (!job.cancelled) {
       const message = error instanceof Error ? error.message : "Capture failed.";
@@ -190,6 +211,72 @@ async function capture(tab, temporarySettings = null) {
   }
 }
 
+async function openSuiteLauncher(tab) {
+  await browser.scripting.executeScript({
+    target:{tabId:tab.id},
+    files:["src/locales.js","src/zip.js","src/qa-audit.js","src/qa-panel.js"],
+  });
+  const stored = await browser.storage.local.get("settings");
+  await send(tab.id,"suite-open",{
+    language:normalizeSettings(stored.settings).language,
+  });
+}
+
+async function runSuite(tab) {
+  const tabId = tab.id;
+  if (runningSuites.has(tabId) || jobs.has(tabId)) {
+    return;
+  }
+  const run = {cancelled:false, tabId};
+  runningSuites.set(tabId,run);
+  const report = newReport(browser.runtime.getManifest().version);
+  try {
+    const saved = await browser.storage.local.get("settings");
+    const base = normalizeSettings(saved.settings);
+    for (const testCase of RUN_CASES) {
+      if (run.cancelled) {
+        break;
+      }
+      let outcome;
+      try {
+        await assertActive(tabId,tab.windowId);
+        const state = await send(tabId,"suite-switch",{
+          scenario:testCase.scenario,
+        });
+        if (!state?.ready || state.scenario !== testCase.scenario ||
+            state.zones < 1) {
+          throw new Error("The test fixture could not switch without navigation.");
+        }
+        const testSettings = selectSettings(base,testCase);
+        const captureResult = await capture(tab,testSettings,testCase);
+        outcome = classifyCapture(testCase,captureResult);
+      } catch (error) {
+        outcome = {
+          status:"fail",
+          reason:error instanceof Error ? error.message : "Test could not run.",
+        };
+      }
+      report.results.push({
+        id:testCase.id,scenario:testCase.scenario,
+        mode:testCase.mode,format:testCase.format,
+        status:outcome.status,
+        reason:String(outcome.reason || "").slice(0,250),
+      });
+      if (run.cancelled) break;
+    }
+  } catch (error) {
+    report.error=error instanceof Error ? error.message : "Automated suite stopped.";
+  } finally {
+    completeReport(report,run.cancelled);
+    runningSuites.delete(tabId);
+    try {
+      await send(tabId,"suite-end",{report});
+    } catch (error) {
+      console.error("LongPage Snap: could not present suite results",error);
+    }
+  }
+}
+
 browser.runtime.onMessage.addListener((message, sender) => {
   if (message?.scope !== SCOPE) {
     return undefined;
@@ -200,6 +287,23 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 
   const tabId = sender.tab?.id;
+  if (message.type === "suite-start") {
+    if (!Number.isInteger(tabId) || runningSuites.has(tabId) ||
+        !isFixtureTab(sender.tab?.url)) {
+      return Promise.resolve({accepted:false});
+    }
+    const tab = sender.tab;
+    void runSuite(tab);
+    return Promise.resolve({accepted:true});
+  }
+  if (message.type === "suite-normal-capture") {
+    if (!Number.isInteger(tabId) || runningSuites.has(tabId) ||
+        !isFixtureTab(sender.tab?.url)) {
+      return Promise.resolve({accepted:false});
+    }
+    void capture(sender.tab);
+    return Promise.resolve({accepted:true});
+  }
   if (message.type === "dismiss-retry") {
     retryOffers.delete(tabId);
     return Promise.resolve({ dismissed: true });
@@ -265,11 +369,28 @@ browser.runtime.onMessage.addListener((message, sender) => {
 });
 
 browser.action.onClicked.addListener((tab) => {
+  const run = runningSuites.get(tab.id);
+  if (run) {
+    // A second toolbar tap cancels the remaining test cases.
+    run.cancelled = true;
+    const job = jobs.get(tab.id);
+    if (job) job.cancelled = true;
+    return;
+  }
+  if (isFixtureTab(tab.url)) {
+    void openSuiteLauncher(tab).catch((error) => {
+      console.error("LongPage Snap: suite launcher unavailable",error);
+      void capture(tab);
+    });
+    return;
+  }
   void capture(tab);
 });
 
 function releaseTab(tabId) {
   retryOffers.delete(tabId);
+  const suite = runningSuites.get(tabId);
+  if (suite) suite.cancelled = true;
   const job = jobs.get(tabId);
   if (job) {
     job.cancelled = true;
