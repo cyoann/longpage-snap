@@ -7,6 +7,7 @@ import { nextScrollY } from "../src/capture-plan.js";
 const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
 const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
 const zipSource = readFileSync(new URL("../src/zip.js", import.meta.url), "utf8");
+const traceSource = readFileSync(new URL("../src/capture-diagnostics.js", import.meta.url), "utf8");
 
 function makeStyle() {
   const properties = new Map();
@@ -30,7 +31,7 @@ function makeStyle() {
 function harness({
   width, height, pageHeight, layoutHeight = height, storageError = false,
   growAtScrollY = Infinity, growToPageHeight = pageHeight,
-  enableZip = false, zipError = false,
+  enableZip = false, zipError = false, enableTrace = false,
 }) {
   const draws = [];
   const created = [];
@@ -132,6 +133,7 @@ function harness({
     images: [],
     createElement: element,
     querySelectorAll: () => [],
+    querySelector: () => null,
   };
   const window = {
     scrollX: 0,
@@ -139,6 +141,11 @@ function harness({
     innerWidth: width,
     innerHeight: height,
     visualViewport: null,
+    location: enableTrace ? {
+      hostname:"cyoann.github.io",
+      pathname:"/longpage-snap/lab/fixture.html",
+      search:"?case=sticky",
+    } : undefined,
     setTimeout() { return 1; },
     getComputedStyle: () => ({
       position: "static",
@@ -247,13 +254,16 @@ function harness({
       },
       revokeObjectURL(url) { zipBlobs.delete(url); },
     },
-    Blob, TextEncoder, atob, Uint32Array, Uint8Array,
+    Blob, TextEncoder, atob, Uint32Array, Uint8Array, URLSearchParams,
     requestAnimationFrame: (callback) => queueMicrotask(callback),
     console,
   });
   vm.runInContext(locales, sandbox);
   if (enableZip) {
     vm.runInContext(zipSource, sandbox);
+  }
+  if (enableTrace) {
+    vm.runInContext(traceSource, sandbox);
   }
   vm.runInContext(script, sandbox);
 
@@ -656,4 +666,39 @@ test("ZIP option is absent above the memory budget", async () => {
     button.textContent === "Save all as ZIP"));
   await clickButton(app, "Save image 1 of 2");
   assert.equal(app.downloads.length, 1);
+});
+
+test("controlled fixture produces opt-in JSON telemetry, no image pixels or URLs", async () => {
+  const app = await runCapture({
+    width: 400, height: 240, pageHeight: 1100,
+    enableTrace: true, captureSettings: { mode: "single", language: "fr" },
+  });
+  const label = "Télécharger les diagnostics JSON";
+  const button = app.buttons.find((item) => item.textContent === label);
+  assert.ok(button, "The diagnostic control should be offered only on fixtures");
+  assert.equal(button.style.display, "block");
+  await clickButton(app, label);
+  const download = app.downloads.find((item) =>
+    item.filename === "longpage-snap-trace-sticky.json");
+  assert.ok(download, "The fixture must export a diagnostic JSON file");
+  const blob = app.zipBlobs.get(download.href);
+  assert.equal(blob.type, "application/json");
+  const report = JSON.parse(await blob.text());
+  assert.equal(report.scenario, "sticky");
+  assert.ok(report.events.some((entry) => entry.kind === "prepare"));
+  assert.ok(report.events.some((entry) => entry.kind === "frame"));
+  assert.ok(report.events.some((entry) => entry.kind === "finish"));
+  assert.ok(report.events.some((entry) =>
+    entry.kind === "frame" && entry.coveredAfter > 0));
+  assert.ok(!JSON.stringify(report).includes("data:image/"));
+  assert.ok(!JSON.stringify(report).includes("https://"));
+});
+
+test("ordinary pages do not expose or record capture diagnostics", async () => {
+  const app = await runCapture({
+    width: 400, height: 240, pageHeight: 800,
+    captureSettings: { mode: "single" },
+  });
+  assert.ok(!app.buttons.some((button) =>
+    button.textContent === "Download diagnostics JSON"));
 });
