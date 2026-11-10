@@ -1419,7 +1419,7 @@
     }
     dispose();
     qaReportHost?.remove();
-    document.dispatchEvent(new CustomEvent("longpage-snap:select-fixture",{
+    document.dispatchEvent(new globalThis.CustomEvent("longpage-snap:select-fixture",{
       detail:id,
     }));
     return {
