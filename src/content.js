@@ -733,7 +733,7 @@
 
   function alignScreenshotFrame(image, writer, nominalTop) {
     const registration = globalThis.LongPageSnapFrameRegistration;
-    if (!registration || !writer.canvas || !writer.context ||
+    if (!registration?.alignFramePixels || !writer.canvas || !writer.context ||
         writer.width > 1200 || writer.covered - nominalTop < 20) {
       return nominalTop;
     }
