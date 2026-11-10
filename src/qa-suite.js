@@ -33,9 +33,11 @@ export function qaRequest(url) {
   }
 }
 export function qaCases(scope) {
-  if (scope === "full") return QA_CASES;
-  if (scope === "smoke") return QA_CASES.filter(({id}) =>
-    ["baseline-jpeg","sticky","lazy","growth","split-dimensions"].includes(id));
+  if (scope === "full") { return QA_CASES; }
+  if (scope === "smoke") {
+    return QA_CASES.filter(({id}) =>
+      ["baseline-jpeg","sticky","lazy","growth","split-dimensions"].includes(id));
+  }
   throw new RangeError("Unsupported QA mode.");
 }
 export function qaSettings(base, testcase) {
