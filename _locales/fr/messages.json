@@ -277,5 +277,17 @@
   },
   "diagnosticsReadyHint": {
     "message": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer."
+  },
+  "qaFinished": {
+    "message": "Rapport de tests automatisés"
+  },
+  "qaSummary": {
+    "message": "{passed} réussis · {failed} échecs · {blocked} bloqués"
+  },
+  "qaLimitations": {
+    "message": "Les contrôles inspectent les pixels des captures réelles. Les confirmations de téléchargement Firefox et chaque glyphe ne peuvent pas être vérifiés automatiquement."
+  },
+  "qaDownload": {
+    "message": "Enregistrer le rapport JSON"
   }
 }
