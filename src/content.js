@@ -302,6 +302,13 @@
       }
       .primary:hover {filter:brightness(.95);}
       .primary:active {transform:translateY(1px);}
+      .zip-alternative {
+        display:none; width:100%; min-height:var(--btn-h);
+        margin-top:var(--s-3); padding:var(--s-2) var(--s-3);
+        border:1px solid var(--stroke); border-radius:var(--r-btn);
+        background:transparent; color:var(--p-ink);
+      }
+      .zip-alternative:hover {background:var(--p-surface);}
       .danger-row {
         display:flex; justify-content:center;
         margin-top:var(--s-5); padding-top:var(--s-4);
@@ -378,9 +385,28 @@
         void requestRecovery();
       } else if (session?.export?.done) {
         void finishExport();
+      } else if (session?.export?.zipMode) {
+        void downloadZip();
       } else {
         void downloadNext();
       }
+    });
+
+    const zipAlternative = document.createElement("button");
+    zipAlternative.className = "zip-alternative";
+    zipAlternative.textContent = t("saveIndividually");
+    zipAlternative.addEventListener("click", () => {
+      if (!session?.export?.zipMode || session.saving) {
+        return;
+      }
+      session.export.zipMode = false;
+      session.export.done = false;
+      session.save.textContent = t("savePart", {
+        n: session.export.next, total: session.export.parts,
+      });
+      session.zipAlternative.style.display = "none";
+      session.dangerRow.style.display = "flex";
+      showOverlay(t("exportingLabel"));
     });
 
     const cancel = document.createElement("button");
@@ -407,12 +433,15 @@
     const dangerRow = document.createElement("div");
     dangerRow.className = "danger-row";
     dangerRow.append(cancel);
-    actions.append(save, dangerRow);
+    actions.append(save, zipAlternative, dangerRow);
     body.append(title, description, panel, track, actions);
     card.append(header, body);
     shadow.append(styles, card);
     document.documentElement.append(host);
-    return { host, panel, title, description, fill, track, save, cancel, dangerRow };
+    return {
+      host, panel, title, description, fill, track, save,
+      zipAlternative, cancel, dangerRow,
+    };
   }
 
   function begin(settings = {}) {
@@ -956,6 +985,82 @@
     }
   }
 
+  async function downloadZip() {
+    const current = session;
+    const state = current?.export;
+    if (!current || !state?.zipMode || state.done || current.saving) {
+      return;
+    }
+    const support = globalThis.LongPageSnapZip;
+    if (!support?.StoredZip) {
+      showOverlay(t("zipUnavailable"));
+      return;
+    }
+
+    current.saving = true;
+    current.save.disabled = true;
+    current.zipAlternative.disabled = true;
+    current.cancel.disabled = true;
+    let blobUrl;
+    let clicked = false;
+    try {
+      const writer = new support.StoredZip();
+      for (let index = 1; index <= state.parts; index += 1) {
+        if (session !== current || current.export !== state) {
+          throw new Error("Export session changed.");
+        }
+        showOverlay(t("zipProgress", { n: index, total: state.parts }));
+        const { image } = await browser.runtime.sendMessage({
+          scope: SCOPE, type: "read", index, exportId: state.exportId,
+        });
+        if (!image) {
+          throw new Error("Screenshot data is missing.");
+        }
+        const filename = state.filename.replace(
+          /\.(jpg|png|webp)$/i,
+          (_match, ext) => "-part-" + String(index).padStart(3, "0") + "." + ext,
+        );
+        writer.add(filename, image);
+      }
+      const blob = writer.finish();
+      blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = state.filename.replace(/\.(jpg|png|webp)$/i, ".zip");
+      anchor.style.display = "none";
+      document.documentElement.append(anchor);
+      try {
+        anchor.click();
+        clicked = true;
+      } finally {
+        anchor.remove();
+      }
+      // Android's native download prompt may remain open for a while.
+      // Keep the object URL valid rather than revoking it on the same tick.
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+      state.done = true;
+      current.save.textContent = t("finishExport");
+      current.description.textContent = t("zipReadyHint");
+      current.dangerRow.style.display = "none";
+      current.panel.textContent = t("zipRequested");
+    } catch (error) {
+      if (blobUrl && !clicked) {
+        URL.revokeObjectURL(blobUrl);
+      }
+      if (session === current) {
+        showOverlay(t("zipFailed"));
+        console.warn("LongPage Snap: ZIP export failed", error);
+      }
+    } finally {
+      if (session === current) {
+        current.saving = false;
+        current.save.disabled = false;
+        current.zipAlternative.disabled = false;
+        current.cancel.disabled = false;
+      }
+    }
+  }
+
   async function downloadNext() {
     if (!session?.export || session.saving || session.export.done) {
       return;
@@ -1021,27 +1126,37 @@
     }
   }
 
-  async function complete({ parts, filename, exportId }) {
+  async function complete({ parts, filename, exportId, zipEligible = false }) {
     if (!session || !Number.isInteger(parts) || parts < 1 ||
         typeof exportId !== "string" || !exportId) {
       throw new Error("Invalid capture result.");
     }
 
     restorePage();
-    session.export = { parts, filename, exportId, next: 1, done: false };
+    const zipMode = parts > 1 && zipEligible === true && Boolean(
+      globalThis.LongPageSnapZip?.StoredZip,
+    );
+    session.export = {
+      parts, filename, exportId, next: 1, done: false, zipMode,
+    };
     session.cancel.textContent = t("discard");
     session.title.textContent = t("captureDone");
     session.description.textContent = parts === 1
       ? t("captureSingle")
-      : t("captureMultiple", { n: parts });
+      : zipMode
+        ? t("zipOptionHint", { n: parts })
+        : t("captureMultiple", { n: parts });
     session.fill.style.width = "100%";
     showOverlay(parts === 1 ? t("savingLabel") : t("exportingLabel"));
     if (parts === 1) {
       await downloadNext();
       return { ready: true };
     }
-    session.save.textContent = t("savePart", { n: 1, total: parts });
+    session.save.textContent = zipMode
+      ? t("saveZip")
+      : t("savePart", { n: 1, total: parts });
     session.save.style.display = "block";
+    session.zipAlternative.style.display = zipMode ? "block" : "none";
     return { ready: true };
   }
 
