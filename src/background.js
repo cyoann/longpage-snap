@@ -374,7 +374,9 @@ browser.action.onClicked.addListener((tab) => {
     // A second toolbar tap cancels the remaining test cases.
     run.cancelled = true;
     const job = jobs.get(tab.id);
-    if (job) job.cancelled = true;
+    if (job) {
+      job.cancelled = true;
+    }
     return;
   }
   if (isFixtureTab(tab.url)) {
@@ -390,7 +392,9 @@ browser.action.onClicked.addListener((tab) => {
 function releaseTab(tabId) {
   retryOffers.delete(tabId);
   const suite = runningSuites.get(tabId);
-  if (suite) suite.cancelled = true;
+  if (suite) {
+    suite.cancelled = true;
+  }
   const job = jobs.get(tabId);
   if (job) {
     job.cancelled = true;
