@@ -418,7 +418,7 @@
         return;
       }
       try {
-        const blob = new Blob([JSON.stringify(trace, null, 2)], {
+        const blob = new globalThis.Blob([JSON.stringify(trace, null, 2)], {
           type: "application/json",
         });
         const url = globalThis.URL.createObjectURL(blob);
