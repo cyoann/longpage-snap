@@ -313,5 +313,11 @@
   },
   "qaExportFailed": {
     "message": "Impossible d’exporter le rapport"
+  },
+  "qaOpen": {
+    "message": "Tests de régression automatisés"
+  },
+  "qaOpenHint": {
+    "message": "Ouvrez la page de test, puis touchez LongPage Snap dans Firefox pour lancer la suite complète."
   }
 }
