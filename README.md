@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.6 (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.8 (ZIP export candidate) (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
 
 ## Features
 
@@ -118,6 +118,15 @@ When a requested **Single Image** exceeds a known memory/dimension/file-size saf
 - **Safe failure recovery:** only known Single Image fit-limit errors offer this option. Security, download, storage, navigation and unrelated capture errors do not trigger it.
 - **One-shot token:** the failed job's staged files are cleaned up before the retry is offered, and only one retry can be launched per failed attempt.
 - **Android acceptance required:** verify French text, the retry button, multiple-image export and unchanged saved mode.
+
+## Experimental, memory-bounded ZIP export
+
+For multipart captures with up to **16 MiB of encoded image data** (maximum 80 files), the export dialog offers a **Save all as ZIP** action, with **Save images individually** as an alternative. The ZIP contains the original JPEG/PNG/WebP bytes using the ZIP **STORE** method (no duplicate compression) and is assembled locally without uploads or external dependencies.
+
+- The ZIP option is hidden when the capture exceeds the Android safety cap. The established sequential file-saving flow remains available.
+- If Firefox refuses to download the ZIP or the browser cannot build it, the user can still save each staged image separately. The parts remain in IndexedDB until Close or Discard.
+- Blob-backed ZIP download compatibility must be tested on Firefox Android before this is merged or advertised as a stable feature. Selecting Save all as ZIP makes one browser download request but cannot confirm the native prompt's acceptance.
+- The ZIP option does not alter saved capture settings or the format of the files inside the archive.
 
 ## Known limitations
 
