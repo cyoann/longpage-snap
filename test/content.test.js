@@ -6,6 +6,7 @@ import { nextScrollY } from "../src/capture-plan.js";
 
 const script = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
 const locales = readFileSync(new URL("../src/locales.js", import.meta.url), "utf8");
+const registrationSource = readFileSync(new URL("../src/frame-registration.js", import.meta.url), "utf8");
 
 function makeStyle() {
   const properties = new Map();
@@ -29,6 +30,7 @@ function makeStyle() {
 function harness({
   width, height, pageHeight, layoutHeight = height, storageError = false,
   growAtScrollY = Infinity, growToPageHeight = pageHeight,
+  enableSeamRepair = false,
 }) {
   const draws = [];
   const created = [];
@@ -236,6 +238,15 @@ function harness({
     console,
   });
   vm.runInContext(locales, sandbox);
+  if (enableSeamRepair) {
+    vm.runInContext(registrationSource, sandbox);
+    // Only enable the pure repair planner for these canvas-mock tests.
+    // Pixel registration itself has separate real-pixel regression tests.
+    vm.runInContext(
+      "globalThis.LongPageSnapFrameRegistration = { planSeamRefresh: globalThis.LongPageSnapFrameRegistration.planSeamRefresh };",
+      sandbox,
+    );
+  }
   vm.runInContext(script, sandbox);
 
   return {
@@ -569,4 +580,23 @@ test("closing a failed capture releases the pending recovery offer", async () =>
     0,
     "Dismissing the dialog must not start an automatic capture",
   );
+});
+
+test("overlapping screenshots refresh only the previous seam tail", async () => {
+  const app = await runCapture({
+    width: 320, height: 300, pageHeight: 1200,
+    enableSeamRepair: true, captureSettings: { mode: "single" },
+  });
+  const repairCalls = app.draws.filter((args) =>
+    args[1] > 0 && args[4] > 0 &&
+    args[2] === 320 && args[6] === 320
+  );
+  assert.ok(repairCalls.length >= 1,
+    "A newer overlapping screenshot must repaint the vulnerable seam tail");
+  for (const call of repairCalls) {
+    assert.ok(call[4] <= 32,
+      "Seam restoration must be limited to at most 32 output pixels");
+  }
+  assert.equal(app.parts, 1,
+    "Repair must not create an additional image or alter Single Image mode");
 });
