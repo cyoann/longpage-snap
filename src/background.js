@@ -279,7 +279,7 @@ browser.runtime.onMessage.addListener((message, sender) => {
 
 async function runQa(tab, mode) {
   const tabId=tab.id;
-  if (qaRunning.has(tabId) || jobs.has(tabId)) return;
+  if (qaRunning.has(tabId) || jobs.has(tabId)) { return; }
   qaRunning.add(tabId);
   const results=[];
   const cases=qaCases(mode);
@@ -298,7 +298,7 @@ async function runQa(tab, mode) {
       try {
         await assertActive(tabId,tab.windowId);
         const changed=await send(tabId,"qa-switch",{fixture:testcase.fixture});
-        if (!changed?.switched) throw new Error("Controlled fixture switch failed.");
+        if (!changed?.switched) { throw new Error("Controlled fixture switch failed."); }
         const inspected=await capture(tab,qaSettings(base,testcase),testcase);
         results.push({id:testcase.id,fixture:testcase.fixture,
           mode:testcase.mode,format:testcase.format,
