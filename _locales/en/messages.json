@@ -277,5 +277,41 @@
   },
   "diagnosticsReadyHint": {
     "message": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
+  },
+  "qaTitle": {
+    "message": "Automated capture tests"
+  },
+  "qaStartHint": {
+    "message": "Run all controlled test cases using the real capture engine. No screenshots are downloaded."
+  },
+  "qaRun": {
+    "message": "Run all tests"
+  },
+  "qaCaptureNormally": {
+    "message": "Capture this page normally"
+  },
+  "qaExport": {
+    "message": "Download JSON report"
+  },
+  "qaClose": {
+    "message": "Close"
+  },
+  "qaPrivacy": {
+    "message": "This test runs only on LongPage Snap's controlled lab. Images remain local and are deleted after each case. Native Firefox download confirmation still requires manual testing."
+  },
+  "qaSummary": {
+    "message": "Test results"
+  },
+  "qaCaseCount": {
+    "message": "15 automated capture checks · 3 manual checks"
+  },
+  "qaDoneHint": {
+    "message": "Review the results. Failures indicate a capture or visual-marker problem; manual checks require human confirmation."
+  },
+  "qaStartFailed": {
+    "message": "Could not start the test runner on this tab."
+  },
+  "qaExportFailed": {
+    "message": "Could not export the report"
   }
 }
