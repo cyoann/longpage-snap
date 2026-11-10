@@ -193,6 +193,10 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 
   const tabId = sender.tab?.id;
+  if (message.type === "dismiss-retry") {
+    retryOffers.delete(tabId);
+    return Promise.resolve({ dismissed: true });
+  }
   if (message.type === "retry-automatic") {
     const offer = retryOffers.get(tabId);
     if (!offer || jobs.has(tabId)) {
