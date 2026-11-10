@@ -137,6 +137,14 @@ The JSON contains bounded numeric telemetry: scroll positions, frame dimensions,
 
 The purpose is to diagnose [issue #5](https://github.com/cyoann/longpage-snap/issues/5), specifically the missing Sticky Zone 11 heading. The recorder does not modify stitching. **Do not merge until a real device test produces a readable trace** and ordinary websites remain unaffected.
 
+## Android viewport-origin and overscan correction (0.3.10 candidate)
+
+Real device trace on the Sticky fixture showed the final screenshot's scroll position at **2690.97 CSS px**, but its `visualViewport.pageTop` at **2626.57 CSS px** (64.40px behind). The screenshot was **1846 device pixels high** at 2.61x, about 708 CSS px, while the stable visible viewport was only **643.23 CSS px**. The previous stitcher treated all 708px as painted document content and placed the last frame using the delayed pageTop; the Zone 11 heading at page Y=2930.55 then fell across invalid overscan and discarded overlap.
+
+This branch treats `document.scrollingElement.scrollTop` / `window.scrollY` as the frame origin and limits written source rows to the reliable visible viewport. It retains existing bounded pixel matching as fallback, does not manipulate page CSS, and keeps the trace JSON on the eight controlled fixtures.
+
+**This is a hypothesis-driven candidate, not yet verified on Firefox Android.** Capture the Sticky and Lazy fixtures again, save both the original image and diagnostic JSON, and check that Zone 11 and FINISH are fully readable with no missing zones or duplicates. Compare frame offsets and source clipping against the reported 64.4px discrepancy before merging.
+
 ## Known limitations
 
 - Only the top-level document's vertical scrolling is supported; nested scrollers and horizontal overflow are excluded.
