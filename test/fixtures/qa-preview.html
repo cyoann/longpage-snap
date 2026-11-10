@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr" data-preview="qa">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LongPage Snap — automated QA preview</title>
+  <style>html,body{margin:0;padding:0;font:16px/1.5 system-ui;}
+    body{background:#f7f7f7;color:#202020;padding:16px;}</style>
+</head>
+<body>
+  <main><h1>LongPage Snap fixture</h1>
+    <p>Automated capture launch preview, 390px Firefox panel.</p>
+  </main>
+  <script src="/test/fixtures/mock-browser.js"></script>
+  <script>window.__longPageSnapQAPreview=true;</script>
+  <script src="/src/locales.js"></script>
+  <script src="/src/qa-panel.js"></script>
+  <script>
+    (async () => {
+      await window.captureMessage({
+        scope:"longpage-snap",type:"suite-open",language:"fr",
+      });
+    })();
+  </script>
+  <script src="/test/fixtures/mobile-metrics.js"></script>
+</body>
+</html>
