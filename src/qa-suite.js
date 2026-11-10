@@ -1,3 +1,4 @@
+import { DEFAULT_SETTINGS } from "./settings.js";
 // Deterministic, user-triggered QA matrix for the project's public test lab.
 // The suite never changes stored preferences and never navigates unrelated sites.
 export const QA_CASES = Object.freeze([
@@ -41,8 +42,12 @@ export function qaCases(scope) {
   throw new RangeError("Unsupported QA mode.");
 }
 export function qaSettings(base, testcase) {
-  const settings = { ...base,
-    mode: testcase.mode, format: testcase.format,
+  // All QA thresholds are fixed, so saved custom limits cannot change the
+  // expected results. Only language is retained for localized UI checks.
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    language:base?.language ?? DEFAULT_SETTINGS.language,
+    mode:testcase.mode, format:testcase.format,
   };
   if (testcase.mode === "split") {
     settings.limits = testcase.limits;
