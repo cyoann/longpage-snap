@@ -94,7 +94,8 @@
     "zipUnavailable": "ZIP export is not supported here. Save images individually.",
     "zipTooLarge": "This capture is too large for a safe ZIP on this device. Save images individually.",
     "downloadDiagnostics": "Download diagnostics JSON",
-    "diagnosticExportFailed": "Unable to export capture diagnostics."
+    "diagnosticExportFailed": "Unable to export capture diagnostics.",
+    "diagnosticsReadyHint": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -188,7 +189,8 @@
     "zipUnavailable": "L’export ZIP n’est pas disponible ici. Enregistrez les images séparément.",
     "zipTooLarge": "Cette capture est trop volumineuse pour un ZIP sûr sur cet appareil. Enregistrez les images séparément.",
     "downloadDiagnostics": "Télécharger les diagnostics JSON",
-    "diagnosticExportFailed": "Impossible d’exporter les diagnostics de capture."
+    "diagnosticExportFailed": "Impossible d’exporter les diagnostics de capture.",
+    "diagnosticsReadyHint": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer."
   }
 };
   const locale = (choice, detected = "") => {
