@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.8 (ZIP export candidate) (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.9 (diagnostic candidate) (ZIP export candidate) (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
 
 ## Features
 
@@ -128,6 +128,14 @@ For multipart captures with up to **16 MiB of encoded image data** (maximum 80 f
 - Blob-backed ZIP download compatibility must be tested on Firefox Android before this is merged or advertised as a stable feature. Selecting Save all as ZIP makes one browser download request but cannot confirm the native prompt's acceptance.
 - The ZIP option does not alter saved capture settings or the format of the files inside the archive.
 - **Archive integrity is not image completeness:** the Android acceptance ZIP contained ten valid, CRC-correct JPEGs, but the last JPEG still missed the large FINISH heading due to the separate [stitching issue #5](https://github.com/cyoann/longpage-snap/issues/5). The lab's ZIP validator verifies bytes and part numbering, not visual fidelity.
+
+## Controlled capture diagnostics (0.3.9 candidate)
+
+A diagnostic report is offered **only** on the eight LongPage Snap GitHub Pages test fixtures, such as `https://cyoann.github.io/longpage-snap/lab/fixture.html?case=sticky`. After capture succeeds or fails, choose **Download diagnostics JSON** / **Télécharger les diagnostics JSON** before closing the capture dialog.
+
+The JSON contains bounded numeric telemetry: scroll positions, frame dimensions, actual image coverage, pixel-registration offsets/confidence and the test fixture's Zone 11 / FINISH positions. It does **not** include screenshot pixels, visited URL, page text, DOM content, title, cookies, account data or browsing history. No telemetry is sent anywhere. It remains a user-initiated download.
+
+The purpose is to diagnose [issue #5](https://github.com/cyoann/longpage-snap/issues/5), specifically the missing Sticky Zone 11 heading. The recorder does not modify stitching. **Do not merge until a real device test produces a readable trace** and ordinary websites remain unaffected.
 
 ## Known limitations
 
