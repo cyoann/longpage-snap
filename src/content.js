@@ -924,13 +924,26 @@
       throw new Error("Viewport width changed during capture.");
     }
 
-    const nominalTop = Math.round(geometry.top * writer.scale);
+    // Firefox Android can report visualViewport.pageTop behind scrollY and
+    // a captureVisibleTab bitmap taller than the visible viewport. The extra
+    // rows are not guaranteed to contain painted document content.
+    const safeFrame = globalThis.LongPageSnapViewportBounds?.frameBounds({
+      scrollY: geometry.scrollY, pageTop: geometry.top,
+      viewportHeight: geometry.height, sourceScale: writer.sourceScale,
+      sourceHeight: image.naturalHeight, scale: writer.scale,
+    });
+    const nominalTop = safeFrame?.nominalTop ??
+      Math.round(geometry.scrollY * writer.scale);
     const coveredBefore = writer.covered;
     const segmentStart = writer.start;
     const segmentHeight = writer.canvas?.height;
     const top = alignScreenshotFrame(image, writer, nominalTop);
     const pagePixels = Math.ceil(measure().pageHeight * writer.scale);
-    const end = Math.min(pagePixels, top + Math.floor(image.naturalHeight * writer.scale / writer.sourceScale));
+    const end = Math.min(
+      pagePixels,
+      top + (safeFrame?.usablePixels ??
+        Math.floor(image.naturalHeight * writer.scale / writer.sourceScale)),
+    );
     if (top > writer.covered + 2) {
       throw new Error("Screenshot alignment gap detected.");
     }
@@ -979,6 +992,8 @@
       scale: writer.scale, sourceScale: writer.sourceScale,
       segmentStart, segmentHeight,
       remainingPixels: Math.max(0, pagePixels - writer.covered),
+      clippedSourcePixels: safeFrame?.clippedSourcePixels,
+      viewportOffset: safeFrame?.viewportOffset,
     });
 
     rememberPositionedElements();
