@@ -6,7 +6,8 @@
   const LAB = "longpage-snap";
   const HOST = "cyoann.github.io";
   if (location.hostname !== HOST ||
-      location.pathname !== "/longpage-snap/lab/fixture.html") {
+      location.pathname !== "/longpage-snap/lab/fixture.html" ||
+      new URLSearchParams(location.search).get("automation") !== "1") {
     return;
   }
   globalThis[KEY] = true;
