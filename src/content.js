@@ -1023,7 +1023,7 @@
         writer.add(filename, image);
       }
       const blob = writer.finish();
-      blobUrl = URL.createObjectURL(blob);
+      blobUrl = globalThis.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = blobUrl;
       anchor.download = state.filename.replace(/\.(jpg|png|webp)$/i, ".zip");
@@ -1037,7 +1037,7 @@
       }
       // Android's native download prompt may remain open for a while.
       // Keep the object URL valid rather than revoking it on the same tick.
-      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+      window.setTimeout(() => globalThis.URL.revokeObjectURL(blobUrl), 120000);
       state.done = true;
       current.save.textContent = t("finishExport");
       current.description.textContent = t("zipReadyHint");
@@ -1045,7 +1045,7 @@
       current.panel.textContent = t("zipRequested");
     } catch (error) {
       if (blobUrl && !clicked) {
-        URL.revokeObjectURL(blobUrl);
+        globalThis.URL.revokeObjectURL(blobUrl);
       }
       if (session === current) {
         showOverlay(t("zipFailed"));
