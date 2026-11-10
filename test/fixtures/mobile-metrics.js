@@ -28,7 +28,11 @@
             shadow?.querySelector(".title")?.textContent === "Capture interrompue" &&
             shadow?.querySelector(".status")?.textContent.includes("une seule image lisible") &&
             shadow?.querySelector(".description")?.textContent.includes("inchangée")
-          : shadow?.querySelector(".primary")?.textContent === "Enregistrer l’image 1 sur 2");
+          : kind === "zip"
+            ? shadow?.querySelector(".primary")?.textContent === "Tout enregistrer en ZIP" &&
+              shadow?.querySelector(".zip-alternative")?.textContent === "Enregistrer les images séparément" &&
+              shadow?.querySelector(".description")?.textContent.includes("10 images prêtes")
+            : shadow?.querySelector(".primary")?.textContent === "Enregistrer l’image 1 sur 2");
     }
     buttons = buttons.filter((button) => !button.disabled &&
       button.getClientRects().length > 0);
