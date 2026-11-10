@@ -44,6 +44,7 @@ function detectBrowserBinary() {
 }
 
 const chrome = detectBrowserBinary();
+const MIME = {".html":"text/html",".js":"text/javascript",".css":"text/css"};
 const server = createServer((request, response) => {
   const requestPath = new URL(request.url, "http://localhost").pathname;
   const file = resolve(root, "." + (requestPath.endsWith("/") ? requestPath + "index.html" : requestPath));
