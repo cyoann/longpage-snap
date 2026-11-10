@@ -388,6 +388,10 @@
     cancel.textContent = t("cancel");
     cancel.addEventListener("click", () => {
       if (session?.failed) {
+        // Drop the one-shot retry capability when the user dismisses it.
+        void browser.runtime.sendMessage({
+          scope: SCOPE, type: "dismiss-retry",
+        }).catch(() => {});
         dispose();
         return;
       }
