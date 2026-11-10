@@ -38,6 +38,7 @@ export function isFixtureTab(url) {
   try {
     const parsed = new URL(url);
     return parsed.origin === FIXTURE_ORIGIN && parsed.pathname === FIXTURE_PATH &&
+      parsed.searchParams.get("automation") === "1" &&
       !parsed.username && !parsed.password;
   } catch {
     return false;
