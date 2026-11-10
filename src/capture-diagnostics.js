@@ -28,7 +28,7 @@
     )) {
       return null;
     }
-    const selected = new URLSearchParams(location.search).get("case") || "baseline";
+    const selected = new globalThis.URLSearchParams(location.search).get("case") || "baseline";
     return FIXTURES.has(selected) ? selected : null;
   }
 
