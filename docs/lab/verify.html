@@ -25,22 +25,22 @@
       <section class="hero" style="padding-bottom:32px">
         <div class="eyebrow">Local file inspection</div>
         <h1>Verify captured images</h1>
-        <p class="lead">Select files downloaded by LongPage Snap to check their real format, pixel dimensions, file size and multipart numbering. Image data stays on your device.</p>
+        <p class="lead">Select downloaded images or a ZIP archive. The validator checks formats, dimensions, sizes, multipart numbering, and ZIP member CRC32 locally.</p>
         <div class="detail">
           <strong>Privacy and scope.</strong>
-          <p>This tool reads only the first 256 KiB of each selected file to inspect its header. It does not upload, render, hash, or save screenshot content. File-type and size checks do <em>not</em> verify visual completeness or confirm that Firefox downloaded every part.</p>
+          <p>For individual screenshots, this tool reads only the first 256 KiB of each selected image. For ZIP files, it reads the directory and calculates CRC32 in 64 KiB slices, without extracting or uploading images. Neither check proves visual completeness or native download confirmation.</p>
         </div>
       </section>
       <section class="section" aria-labelledby="choose-files">
-        <h2 id="choose-files">1. Select downloaded files</h2>
-        <p class="muted">For a multipart capture, select <strong>all</strong> files together. Firefox's Android file picker might require you to select them one by one if multi-selection is unavailable.</p>
-        <input id="files" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple>
+        <h2 id="choose-files">1. Select images or ZIP</h2>
+        <p class="muted">For a ZIP export, select the single .zip file. For individual multipart images, select <strong>all</strong> files together. Android file pickers may limit multi-selection.</p>
+        <input id="files" type="file" accept="image/jpeg,image/png,image/webp,application/zip,.jpg,.jpeg,.png,.webp,.zip" multiple>
         <p class="small muted" id="files-status" role="status" aria-live="polite">No files selected.</p>
       </section>
 
       <section class="section" aria-labelledby="expected">
         <h2 id="expected">2. Set your expectations</h2>
-        <p class="muted">Copy the settings you used in LongPage Snap. Leave numeric limits empty if they don't apply. This site cannot read your extension preferences.</p>
+        <p class="muted">Copy the settings you used in LongPage Snap for individual images. ZIP inspection checks file integrity and ordered part names; dimension limits apply to individual images only. This site cannot read your extension preferences.</p>
         <div class="grid-fields">
           <div class="field">
             <label for="mode">Export mode</label>
