@@ -19,7 +19,7 @@
     canvas.width = Math.min(width,w);
     canvas.height = Math.min(height,h);
     const ctx = canvas.getContext("2d", { willReadFrequently:true });
-    if (!ctx) return null;
+    if (!ctx) { return null; }
     ctx.drawImage(image,x,y,w,h,0,0,canvas.width,canvas.height);
     const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
     canvas.width = 0;
@@ -27,12 +27,12 @@
     return data;
   }
   function inkCount(data, light=false) {
-    if (!data) return 0;
+    if (!data) { return 0; }
     let count = 0;
     for (let i=0;i<data.length;i+=4) {
       const r=data[i],g=data[i+1],b=data[i+2];
       if (light ? (r>190 && g>190 && b>190) :
-        (r<105 && g<105 && b<115)) count+=1;
+        (r<105 && g<105 && b<115)) { count+=1; }
     }
     return count;
   }
@@ -60,7 +60,7 @@
     const failures=[];
     const zones=[...document.querySelectorAll("#zones>.zone")];
     const finish=document.querySelector("#finish-marker strong");
-    if (!finish || !zones.length) throw new Error("Fixture DOM not ready.");
+    if (!finish || !zones.length) { throw new Error("Fixture DOM not ready."); }
     const scrollY=window.scrollY;
     const expected=zones.map((zone,index)=>{
       const rectangle=zone.getBoundingClientRect();
@@ -105,33 +105,41 @@
         failures.push("Part "+i+" has invalid dimensions.");
         continue;
       }
-      if (scale===null) scale=image.naturalWidth/document.documentElement.clientWidth;
+      if (scale===null) { scale=image.naturalWidth/document.documentElement.clientWidth; }
       if (Math.abs(image.naturalWidth/document.documentElement.clientWidth-scale)>0.03) {
         failures.push("Part "+i+" differs in output scale.");
       }
       const end=offset+image.naturalHeight;
       for (const zone of expected) {
-        if (seen.has(zone.number) || !zone.heading) continue;
+        if (seen.has(zone.number) || !zone.heading) { continue; }
         const headingY=(zone.heading.top+zone.heading.height/2)*scale;
-        if (headingY<offset||headingY>=end) continue;
+        if (headingY<offset||headingY>=end) { continue; }
         seen.add(zone.number);
         const headingPixels=region(image,offset,scale,zone.heading);
         const count=inkCount(headingPixels);
-        if (count<8) failures.push("ZONE "+String(zone.number).padStart(2,"0")+
-          ": heading pixels missing at capture seam.");
-        else checkedHeadings++;
+        if (count<8) {
+          failures.push("ZONE "+String(zone.number).padStart(2,"0")+
+            ": heading pixels missing at capture seam.");
+        } else {
+          checkedHeadings++;
+        }
         const y=Math.floor((zone.top+zone.height*0.66)*scale-offset);
         const x=Math.floor((zone.left+12)*scale);
         if (y>=0&&y<image.naturalHeight&&x>=0&&x<image.naturalWidth&&zone.background) {
           const actual=sample(image,x,y);
           const difference=actual.reduce((sum,channel,k)=>
             sum+Math.abs(channel-zone.background[k]),0)/3;
-          if (difference>48) failures.push("ZONE "+zone.number+
-            ": unexpected color or missing image content.");
-          else checkedZones++;
+          if (difference>48) {
+            failures.push("ZONE "+zone.number+
+              ": unexpected color or missing image content.");
+          } else {
+            checkedZones++;
+          }
         }
-        if (!zone.lazyLoaded) failures.push("ZONE "+zone.number+
-          ": lazy image did not load.");
+        if (!zone.lazyLoaded) {
+          failures.push("ZONE "+zone.number+
+            ": lazy image did not load.");
+        }
       }
       const finishCenter=(finishTop+finishRect.height/2)*scale;
       if (!checkedFinish&&finishCenter>=offset&&finishCenter<end) {
@@ -144,13 +152,17 @@
       offset=end;
       image.src="";
     }
-    if (seen.size!==expected.length) failures.push("Only "+seen.size+
-      " of "+expected.length+" zone headings were sampled.");
-    if (checkedZones!==expected.length) failures.push("Only "+checkedZones+
-      " of "+expected.length+" zone colors verified.");
-    if (!checkedFinish) failures.push("FINISH title not detected in image pixels.");
-    if (mode==="single"&&parts!==1) failures.push("Single mode produced multiple images.");
-    if (mode==="split"&&parts<2) failures.push("Split fixture produced fewer than 2 parts.");
+    if (seen.size!==expected.length) {
+      failures.push("Only "+seen.size+
+        " of "+expected.length+" zone headings were sampled.");
+    }
+    if (checkedZones!==expected.length) {
+      failures.push("Only "+checkedZones+
+        " of "+expected.length+" zone colors verified.");
+    }
+    if (!checkedFinish) { failures.push("FINISH title not detected in image pixels."); }
+    if (mode==="single"&&parts!==1) { failures.push("Single mode produced multiple images."); }
+    if (mode==="split"&&parts<2) { failures.push("Split fixture produced fewer than 2 parts."); }
     return {
       status:failures.length?"fail":"pass", parts, zoneCount:expected.length,
       checkedZones,checkedHeadings,finishDetected:checkedFinish,failures,
