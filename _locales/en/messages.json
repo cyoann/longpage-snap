@@ -313,5 +313,11 @@
   },
   "qaExportFailed": {
     "message": "Could not export the report"
+  },
+  "qaOpen": {
+    "message": "Automated regression tests"
+  },
+  "qaOpenHint": {
+    "message": "Open the controlled fixture, then tap LongPage Snap in Firefox to run the complete suite."
   }
 }
