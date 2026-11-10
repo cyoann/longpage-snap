@@ -37,7 +37,8 @@ test("QA overrides never mutate the saved export settings",()=>{
   assert.equal(plan.mode,"split");
   assert.equal(plan.format,"jpeg");
   assert.equal(plan.maxHeight,500);
-  assert.equal(plan.quality,79);
+  assert.equal(plan.quality,86,"QA uses reproducible default quality");
+  assert.equal(plan.maxWidth,4096,"QA ignores personal output limits");
   assert.equal(saved.mode,"single");
   assert.equal(saved.format,"webp");
   assert.equal(saved.maxHeight,4000);
