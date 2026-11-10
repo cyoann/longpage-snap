@@ -680,7 +680,8 @@ test("controlled fixture produces opt-in JSON telemetry, no image pixels or URLs
   await clickButton(app, label);
   const download = app.downloads.find((item) =>
     item.filename === "longpage-snap-trace-sticky.json");
-  assert.ok(download, "The fixture must export a diagnostic JSON file");
+  assert.ok(download,
+    "The fixture must export a diagnostic JSON file: " + JSON.stringify(app.downloads));
   const blob = app.zipBlobs.get(download.href);
   assert.equal(blob.type, "application/json");
   const report = JSON.parse(await blob.text());
@@ -700,5 +701,7 @@ test("ordinary pages do not expose or record capture diagnostics", async () => {
     captureSettings: { mode: "single" },
   });
   assert.ok(!app.buttons.some((button) =>
-    button.textContent === "Download diagnostics JSON"));
+    button.textContent === "Download diagnostics JSON" &&
+    button.style.display === "block"),
+  "The diagnostics control must remain hidden outside the lab");
 });
