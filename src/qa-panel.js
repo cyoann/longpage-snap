@@ -7,7 +7,7 @@
   const HOST = "cyoann.github.io";
   if (location.hostname !== HOST ||
       location.pathname !== "/longpage-snap/lab/fixture.html" ||
-      new URLSearchParams(location.search).get("automation") !== "1") {
+      new globalThis.URLSearchParams(location.search).get("automation") !== "1") {
     return;
   }
   globalThis[KEY] = true;
@@ -131,7 +131,9 @@
   }
 
   run.addEventListener("click", () => {
-    if (running || report) return;
+    if (running || report) {
+      return;
+    }
     running = true;
     hide();
     void browser.runtime.sendMessage({scope:LAB,type:"suite-start"})
@@ -151,12 +153,16 @@
       });
   });
   normal.addEventListener("click", () => {
-    if (running) return;
+    if (running) {
+      return;
+    }
     hide();
     void browser.runtime.sendMessage({scope:LAB,type:"suite-normal-capture"});
   });
   download.addEventListener("click", () => {
-    if (!report) return;
+    if (!report) {
+      return;
+    }
     try {
       const blob = new globalThis.Blob([JSON.stringify(report,null,2)],{
         type:"application/json",
@@ -175,7 +181,9 @@
     }
   });
   close.addEventListener("click", () => {
-    if (!running) hide();
+    if (!running) {
+      hide();
+    }
   });
 
   function settle() {
@@ -183,7 +191,9 @@
       requestAnimationFrame(resolve)));
   }
   browser.runtime.onMessage.addListener((message) => {
-    if (message?.scope !== LAB) return undefined;
+    if (message?.scope !== LAB) {
+      return undefined;
+    }
     switch (message.type) {
       case "suite-open":
         language = message.language || "auto";
@@ -197,7 +207,7 @@
           if (!running || typeof message.scenario !== "string") {
             return {ready:false};
           }
-          document.dispatchEvent(new CustomEvent("longpage-snap:select-fixture", {
+          document.dispatchEvent(new globalThis.CustomEvent("longpage-snap:select-fixture", {
             detail:message.scenario,
           }));
           await settle();
