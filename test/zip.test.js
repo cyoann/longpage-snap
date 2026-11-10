@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { TextEncoder, TextDecoder } from "node:util";
 import vm from "node:vm";
+import { inspectZip } from "../docs/lab/zip-verify.js";
 
 const source = readFileSync(new URL("../src/zip.js", import.meta.url), "utf8");
 const sandbox = vm.createContext({
@@ -84,4 +85,36 @@ test("enforces Android memory budget before decoding oversized entries", () => {
   const maxEncoded = "A".repeat(Math.ceil((MAX_IMAGE_BYTES + 1) / 3) * 4);
   assert.throws(() => writer.add("huge.jpg", "data:image/jpeg;base64," + maxEncoded),
     /memory budget/i);
+});
+
+test("GitHub Pages ZIP validator accepts intact multi-image output", async () => {
+  const writer = new StoredZip();
+  writer.add("snap-part-001.jpg", payload(Buffer.from("123456789")));
+  writer.add("snap-part-002.jpg", payload(Buffer.from([0, 255, 23, 99])));
+  const outcome = await inspectZip(writer.finish());
+  assert.equal(outcome.passed, true);
+  assert.equal(outcome.errors.length, 0);
+  assert.equal(outcome.entries.length, 2);
+  assert.ok(outcome.entries.every((entry) => entry.valid));
+});
+
+test("GitHub Pages ZIP validator detects corrupted screenshot bytes", async () => {
+  const writer = new StoredZip();
+  writer.add("snap-part-001.jpg", payload(Buffer.from("123456789")));
+  writer.add("snap-part-002.jpg", payload(Buffer.from("test")));
+  const bytes = new Uint8Array(await writer.finish().arrayBuffer());
+  const payloadOffset = 30 + "snap-part-001.jpg".length;
+  bytes[payloadOffset + 3] ^= 0x55;
+  const outcome = await inspectZip(new Blob([bytes], { type:"application/zip" }));
+  assert.equal(outcome.passed, false);
+  assert.match(outcome.errors.join(" "), /CRC32/i);
+});
+
+test("GitHub Pages ZIP validator rejects missing and repeated part numbers", async () => {
+  const writer = new StoredZip();
+  writer.add("snap-part-001.jpg", payload([1, 2, 3]));
+  writer.add("snap-part-003.jpg", payload([4, 5, 6]));
+  const outcome = await inspectZip(writer.finish());
+  assert.equal(outcome.passed, false);
+  assert.match(outcome.errors.join(" "), /numbering/i);
 });
