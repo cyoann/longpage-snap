@@ -289,5 +289,8 @@
   },
   "qaDownload": {
     "message": "Enregistrer le rapport JSON"
+  },
+  "qaProgress": {
+    "message": "Test automatisé {n} sur {total}"
   }
 }
