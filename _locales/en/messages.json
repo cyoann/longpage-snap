@@ -268,5 +268,14 @@
   },
   "zipTooLarge": {
     "message": "This capture is too large for a safe ZIP on this device. Save images individually."
+  },
+  "downloadDiagnostics": {
+    "message": "Download diagnostics JSON"
+  },
+  "diagnosticExportFailed": {
+    "message": "Unable to export capture diagnostics."
+  },
+  "diagnosticsReadyHint": {
+    "message": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
   }
 }

@@ -409,6 +409,36 @@
       showOverlay(t("exportingLabel"));
     });
 
+    const diagnosticsButton = document.createElement("button");
+    diagnosticsButton.className = "zip-alternative";
+    diagnosticsButton.textContent = t("downloadDiagnostics");
+    diagnosticsButton.addEventListener("click", () => {
+      const trace = session?.trace?.snapshot();
+      if (!trace) {
+        return;
+      }
+      try {
+        const blob = new globalThis.Blob([JSON.stringify(trace, null, 2)], {
+          type: "application/json",
+        });
+        const url = globalThis.URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "longpage-snap-trace-" + trace.scenario + ".json";
+        anchor.style.display = "none";
+        document.documentElement.append(anchor);
+        try {
+          anchor.click();
+        } finally {
+          anchor.remove();
+          window.setTimeout(() => globalThis.URL.revokeObjectURL(url), 120000);
+        }
+      } catch (error) {
+        console.warn("LongPage Snap: diagnostic export failed", error);
+        showOverlay(t("diagnosticExportFailed"));
+      }
+    });
+
     const cancel = document.createElement("button");
     cancel.className = "secondary";
     cancel.textContent = t("cancel");
@@ -433,14 +463,14 @@
     const dangerRow = document.createElement("div");
     dangerRow.className = "danger-row";
     dangerRow.append(cancel);
-    actions.append(save, zipAlternative, dangerRow);
+    actions.append(save, zipAlternative, diagnosticsButton, dangerRow);
     body.append(title, description, panel, track, actions);
     card.append(header, body);
     shadow.append(styles, card);
     document.documentElement.append(host);
     return {
       host, panel, title, description, fill, track, save,
-      zipAlternative, cancel, dangerRow,
+      zipAlternative, diagnosticsButton, cancel, dangerRow,
     };
   }
 
@@ -470,7 +500,11 @@
       restored: false,
       saving: false,
       export: null,
+      trace: globalThis.LongPageSnapDiagnostics?.create(window.location) ?? null,
+      lastAlignment: { delta: 0, confidence: "skipped" },
+      frameCount: 0,
     };
+    session.trace?.add("begin", { mode: session.settings.mode });
 
     saveStyle(document.documentElement, "scroll-behavior", "auto");
     saveStyle(document.documentElement, "scroll-snap-type", "none");
@@ -506,6 +540,23 @@
     await nextPaint();
 
     const geometry = measure();
+    if (session.trace) {
+      const zone = document.querySelector?.('.zone[data-zone="11"]');
+      const heading = zone?.querySelector(".zone-number strong");
+      const finish = document.querySelector?.("#finish-marker");
+      const zoneRect = zone?.getBoundingClientRect();
+      const headingRect = heading?.getBoundingClientRect();
+      const finishRect = finish?.getBoundingClientRect();
+      session.trace.add("prepare", {
+        targetY: y, scrollY: geometry.scrollY, pageTop: geometry.top,
+        viewportHeight: geometry.height, viewportWidth: geometry.width,
+        maxScrollY: geometry.maxScrollY, pageHeight: geometry.pageHeight,
+        zone11Top: zoneRect?.top, zone11Bottom: zoneRect?.bottom,
+        zone11HeadingTop: headingRect?.top,
+        zone11HeadingBottom: headingRect?.bottom,
+        finishTop: finishRect?.top, finishBottom: finishRect?.bottom,
+      });
+    }
     hideOverlay();
     await nextPaint();
     return geometry;
@@ -761,6 +812,7 @@
   }
 
   function alignScreenshotFrame(image, writer, nominalTop) {
+    session.lastAlignment = { delta: 0, confidence: "skipped" };
     const registration = globalThis.LongPageSnapFrameRegistration;
     if (!registration || !writer.canvas || !writer.context ||
         writer.width > 1200 || writer.covered - nominalTop < 20) {
@@ -801,6 +853,9 @@
         nextPixels, nextHeight, width: writer.width,
         nominalTop, maxShift: 88,
       });
+      session.lastAlignment = {
+        delta: match.delta, confidence: match.confidence, error: match.error,
+      };
       if (match.confidence === "matched") {
         console.info(
           "LongPage Snap: corrected frame alignment by " +
@@ -870,6 +925,9 @@
     }
 
     const nominalTop = Math.round(geometry.top * writer.scale);
+    const coveredBefore = writer.covered;
+    const segmentStart = writer.start;
+    const segmentHeight = writer.canvas?.height;
     const top = alignScreenshotFrame(image, writer, nominalTop);
     const pagePixels = Math.ceil(measure().pageHeight * writer.scale);
     const end = Math.min(pagePixels, top + Math.floor(image.naturalHeight * writer.scale / writer.sourceScale));
@@ -903,6 +961,25 @@
       cursor += length;
       writer.covered = cursor;
     }
+
+    session.frameCount += 1;
+    session.trace?.add("frame", {
+      frame: session.frameCount,
+      scrollY: geometry.scrollY, pageTop: geometry.top,
+      viewportHeight: geometry.height, viewportWidth: geometry.width,
+      pageHeight: geometry.pageHeight,
+      imageWidth: image.naturalWidth, imageHeight: image.naturalHeight,
+      nominalTop, alignedTop: top,
+      delta: session.lastAlignment?.delta,
+      confidence: session.lastAlignment?.confidence,
+      error: session.lastAlignment?.error,
+      coveredBefore, coveredAfter: writer.covered,
+      start: Math.max(coveredBefore, top),
+      end, overlap: Math.max(0, coveredBefore - top),
+      scale: writer.scale, sourceScale: writer.sourceScale,
+      segmentStart, segmentHeight,
+      remainingPixels: Math.max(0, pagePixels - writer.covered),
+    });
 
     rememberPositionedElements();
     const progress = Math.min(100, Math.floor(100 * writer.covered / pagePixels));
@@ -1102,6 +1179,16 @@
         state.done = true;
         if (state.parts === 1) {
           session.saving = false;
+          if (session.trace) {
+            // Normal Single Image exports still close automatically.
+            // Controlled fixtures keep the panel open so the user can
+            // explicitly save the trace before clicking Done.
+            session.panel.textContent = t("diagnosticsReadyHint");
+            session.save.textContent = t("finishExport");
+            session.title.textContent = t("saveComplete");
+            session.dangerRow.style.display = "none";
+            return;
+          }
           await finishExport();
           return;
         }
@@ -1132,7 +1219,11 @@
       throw new Error("Invalid capture result.");
     }
 
+    session.trace?.add("finish", {
+      parts, coveredAfter: session.writer?.covered,
+    });
     restorePage();
+    session.diagnosticsButton.style.display = session.trace ? "block" : "none";
     const zipMode = parts > 1 && zipEligible === true && Boolean(
       globalThis.LongPageSnapZip?.StoredZip,
     );
@@ -1210,6 +1301,10 @@
     if (!session) {
       return;
     }
+    session.trace?.add("failure", {
+      frame: session.frameCount, coveredAfter: session.writer?.covered,
+    });
+    session.diagnosticsButton.style.display = session.trace ? "block" : "none";
     session.failed = true;
     session.failureCode = code;
     session.retryReady = false;

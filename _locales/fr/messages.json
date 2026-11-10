@@ -268,5 +268,14 @@
   },
   "zipTooLarge": {
     "message": "Cette capture est trop volumineuse pour un ZIP sûr sur cet appareil. Enregistrez les images séparément."
+  },
+  "downloadDiagnostics": {
+    "message": "Télécharger les diagnostics JSON"
+  },
+  "diagnosticExportFailed": {
+    "message": "Impossible d’exporter les diagnostics de capture."
+  },
+  "diagnosticsReadyHint": {
+    "message": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer."
   }
 }
