@@ -226,5 +226,20 @@
   },
   "testLabLink": {
     "message": "Open test lab"
+  },
+  "singleLimitMessage": {
+    "message": "This page is too large for one readable image on this device."
+  },
+  "singleLimitRetryHint": {
+    "message": "Retry this capture in Automatic mode. It may create several images. Your saved Single Image setting will not change."
+  },
+  "retryAutomatic": {
+    "message": "Retry in Automatic mode"
+  },
+  "retryStarting": {
+    "message": "Starting a new capture with safe image splitting…"
+  },
+  "retryUnavailable": {
+    "message": "The retry could not start. Close this dialog and try again."
   }
 }
