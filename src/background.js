@@ -70,6 +70,10 @@ async function capture(tab, temporarySettings = null, qaCase = null) {
     settings = temporarySettings ?? normalizeSettings(preferences.settings);
     job.started = true;
     const page = await send(tabId, "begin", { settings });
+    if (qaCase) {
+      await send(tabId, "qa-case", { id:qaCase.id,
+        index:qaCase.index, total:qaCase.total });
+    }
     const filename = screenshotFilename(page.title).replace(/\.jpg$/i, "." + extensionFor(settings.format));
     let targetY = 0;
     let coveredPixels = 0;
@@ -303,7 +307,9 @@ async function runQa(tab, mode) {
         }
         const changed=await send(tabId,"qa-switch",{fixture:testcase.fixture});
         if (!changed?.switched) { throw new Error("Controlled fixture switch failed."); }
-        const inspected=await capture(tab,qaSettings(base,testcase),testcase);
+        const inspected=await capture(tab,qaSettings(base,testcase),{
+          ...testcase,index:results.length+1,total:cases.length,
+        });
         results.push({id:testcase.id,fixture:testcase.fixture,
           mode:testcase.mode,format:testcase.format,
           ...inspected});
