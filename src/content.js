@@ -1145,7 +1145,9 @@
       ? t("captureSingle")
       : zipMode
         ? t("zipOptionHint", { n: parts })
-        : t("captureMultiple", { n: parts });
+        : globalThis.LongPageSnapZip?.StoredZip
+          ? t("zipTooLarge")
+          : t("captureMultiple", { n: parts });
     session.fill.style.width = "100%";
     showOverlay(parts === 1 ? t("savingLabel") : t("exportingLabel"));
     if (parts === 1) {
