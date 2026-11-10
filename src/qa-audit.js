@@ -140,7 +140,7 @@
       throw new Error("Visual audit canvas is unavailable.");
     }
     const matched = new Set();
-    const missed = [];
+
     let partTop = 0, width = 0, totalBytes = 0, zipVerified = false;
     let zipSkipped = false;
     const zip = checkZip ? new globalThis.LongPageSnapZip.StoredZip() : null;
@@ -188,10 +188,10 @@
               if (visualSample(img, marker, scale, partTop, context)) {
                 matched.add(marker.id);
               } else {
-                missed.push(marker.id);
+
               }
             } catch {
-              missed.push(marker.id);
+
             }
           }
           partTop += img.naturalHeight;
@@ -212,17 +212,17 @@
         const archive = zip.finish();
         zipVerified = archive.type === "application/zip" && archive.size > totalBytes;
       }
-      for (const marker of markers) {
-        if (!matched.has(marker.id) && !missed.includes(marker.id)) {
-          missed.push(marker.id);
-        }
-      }
-      if (missed.length) {
+      // A heading can span two images. A match in either half is valid,
+      // even when the first image contained only background pixels.
+      const unresolved = markers.filter((marker) => !matched.has(marker.id))
+        .map((marker) => marker.id);
+      if (unresolved.length) {
         return {
           valid:false, reason:"Missing visual fixture markers: " +
-            missed.slice(0, 8).join(", ") + (missed.length > 8 ? "…" : ""),
+            unresolved.slice(0, 8).join(", ") +
+            (unresolved.length > 8 ? "…" : ""),
           parts, totalBytes, markerCount:markers.length,
-          matchedMarkers:matched.size, missingMarkers:missed,
+          matchedMarkers:matched.size, missingMarkers:unresolved,
           zipVerified, zipSkipped,
         };
       }
