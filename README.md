@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.9 (diagnostic candidate) (ZIP export candidate) (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.10 (not an AMO release).** The Android viewport-origin and overscan correction was merged in PR #9. Physical-device acceptance was reported for the Sticky fixture (all 11 zones, including Zone 11) and the Lazy fixture (all 12 images and complete FINISH). Broader regression is still outstanding on the merged build: baseline (10 zones), dynamic growth (14 zones), and long-page Automatic/ZIP (46 zones, including the large FINISH heading in the final JPEG). Automated CI and ZIP CRC checks alone do not establish screenshot completeness.
 
 ## Features
 
@@ -54,7 +54,7 @@ For Firefox Nightly, use `org.mozilla.fenix`; for Beta, `org.mozilla.firefox_bet
 
 ## Public test lab
 
-The [LongPage Snap test lab](https://cyoann.github.io/longpage-snap/lab/) is hosted from the repository's `main/docs` GitHub Pages source. Until Pages is enabled in repository settings, the link may be unavailable.
+The [LongPage Snap test lab](https://cyoann.github.io/longpage-snap/lab/) is published from `main/docs` on GitHub Pages. Site CI checks the fixture routes, including same-document scenario switching in a 390px Chromium viewport; it does not execute the privileged Firefox Android capture pipeline.
 
 The extension's **Settings → Test capture → Open test lab** link opens the lab directly in Firefox. The site includes eight deterministic capture fixtures, an 18-case release acceptance checklist (local results, exportable JSON), and an offline JPEG/PNG/WebP metadata validator.
 
@@ -105,7 +105,7 @@ Image parts exceeding the optional encoded file-size limit are divided using pix
 
 ## Android frame alignment validation (0.3.5)
 
-This draft build introduces bounded overlap between consecutive screenshots and in-memory pixel matching. It targets a reproducible baseline failure where Android capture produced the correct image dimensions but compressed the FINISH footer, omitted its case/zone label, and added a white bottom strip. The earlier end-of-scroll spacer alone did not resolve the issue.
+Version 0.3.5 introduced bounded overlap between consecutive screenshots and in-memory pixel matching. It targets a reproducible baseline failure where Android capture produced the correct image dimensions but compressed the FINISH footer, omitted its case/zone label, and added a white bottom strip. The earlier end-of-scroll spacer alone did not resolve the issue.
 
 A baseline capture is acceptable only when the three distinct footer lines (**FINISH**, **CASE BASELINE · ZONES 01–10**, and **LONGPAGE SNAP · END OF FIXTURE**) are visible and ordered. Testing with the phone is required; unit tests cannot establish that Android's actual viewport and toolbar behavior is corrected.
 
@@ -119,31 +119,31 @@ When a requested **Single Image** exceeds a known memory/dimension/file-size saf
 - **One-shot token:** the failed job's staged files are cleaned up before the retry is offered, and only one retry can be launched per failed attempt.
 - **Android acceptance required:** verify French text, the retry button, multiple-image export and unchanged saved mode.
 
-## Experimental, memory-bounded ZIP export
+## Memory-bounded ZIP export (0.3.8)
 
 For multipart captures with up to **16 MiB of encoded image data** (maximum 80 files), the export dialog offers a **Save all as ZIP** action, with **Save images individually** as an alternative. The ZIP contains the original JPEG/PNG/WebP bytes using the ZIP **STORE** method (no duplicate compression) and is assembled locally without uploads or external dependencies.
 
 - The ZIP option is hidden when the capture exceeds the Android safety cap. The established sequential file-saving flow remains available.
 - If Firefox refuses to download the ZIP or the browser cannot build it, the user can still save each staged image separately. The parts remain in IndexedDB until Close or Discard.
-- Blob-backed ZIP download compatibility must be tested on Firefox Android before this is merged or advertised as a stable feature. Selecting Save all as ZIP makes one browser download request but cannot confirm the native prompt's acceptance.
+- ZIP export was merged and previously produced an Android archive with ten CRC-correct JPEGs. Visual completeness was not established: the last JPEG lacked the large FINISH heading. Retest on v0.3.10 before treating the export as release-ready. Selecting Save all as ZIP makes one browser download request but cannot confirm that the native prompt was accepted.
 - The ZIP option does not alter saved capture settings or the format of the files inside the archive.
 - **Archive integrity is not image completeness:** the Android acceptance ZIP contained ten valid, CRC-correct JPEGs, but the last JPEG still missed the large FINISH heading due to the separate [stitching issue #5](https://github.com/cyoann/longpage-snap/issues/5). The lab's ZIP validator verifies bytes and part numbering, not visual fidelity.
 
-## Controlled capture diagnostics (0.3.9 candidate)
+## Controlled capture diagnostics (0.3.9)
 
 A diagnostic report is offered **only** on the eight LongPage Snap GitHub Pages test fixtures, such as `https://cyoann.github.io/longpage-snap/lab/fixture.html?case=sticky`. After capture succeeds or fails, choose **Download diagnostics JSON** / **Télécharger les diagnostics JSON** before closing the capture dialog.
 
 The JSON contains bounded numeric telemetry: scroll positions, frame dimensions, actual image coverage, pixel-registration offsets/confidence and the test fixture's Zone 11 / FINISH positions. It does **not** include screenshot pixels, visited URL, page text, DOM content, title, cookies, account data or browsing history. No telemetry is sent anywhere. It remains a user-initiated download.
 
-The purpose is to diagnose [issue #5](https://github.com/cyoann/longpage-snap/issues/5), specifically the missing Sticky Zone 11 heading. The recorder does not modify stitching. **Do not merge until a real device test produces a readable trace** and ordinary websites remain unaffected.
+The purpose is to diagnose [issue #5](https://github.com/cyoann/longpage-snap/issues/5), specifically the missing Sticky Zone 11 heading. The recorder was merged in PR #8 after device trace analysis; it does not modify stitching and remains restricted to controlled fixtures.
 
-## Android viewport-origin and overscan correction (0.3.10 candidate)
+## Android viewport-origin and overscan correction (0.3.10)
 
 Real device trace on the Sticky fixture showed the final screenshot's scroll position at **2690.97 CSS px**, but its `visualViewport.pageTop` at **2626.57 CSS px** (64.40px behind). The screenshot was **1846 device pixels high** at 2.61x, about 708 CSS px, while the stable visible viewport was only **643.23 CSS px**. The previous stitcher treated all 708px as painted document content and placed the last frame using the delayed pageTop; the Zone 11 heading at page Y=2930.55 then fell across invalid overscan and discarded overlap.
 
-This branch treats `document.scrollingElement.scrollTop` / `window.scrollY` as the frame origin and limits written source rows to the reliable visible viewport. It retains existing bounded pixel matching as fallback, does not manipulate page CSS, and keeps the trace JSON on the eight controlled fixtures.
+The merged v0.3.10 implementation treats `document.scrollingElement.scrollTop` / `window.scrollY` as the frame origin and limits written source rows to the reliable visible viewport. It retains existing bounded pixel matching as fallback, does not manipulate page CSS, and keeps the trace JSON on the eight controlled fixtures.
 
-**This is a hypothesis-driven candidate, not yet verified on Firefox Android.** Capture the Sticky and Lazy fixtures again, save both the original image and diagnostic JSON, and check that Zone 11 and FINISH are fully readable with no missing zones or duplicates. Compare frame offsets and source clipping against the reported 64.4px discrepancy before merging.
+**Reported physical Android result:** The original Sticky and Lazy captures and their diagnostic traces passed on one device after this correction. Sticky Zone 11 and Lazy FINISH were complete, and the traces showed 168 clipped source pixels per affected frame with zero uncovered output pixels. This does not replace broader v0.3.10 acceptance, particularly the baseline, growth, and 46-zone long-page ZIP scenarios.
 
 ## Known limitations
 
