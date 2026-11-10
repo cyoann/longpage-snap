@@ -12,6 +12,8 @@ import {
 } from "./segment-store.js";
 
 const SCOPE = "longpage-snap";
+const ZIP_MAX_IMAGE_BYTES = 16 * 1024 * 1024;
+const ZIP_MAX_ENTRIES = 80;
 const jobs = new Map();
 const retryOffers = new Map();
 
@@ -47,6 +49,7 @@ async function capture(tab, temporarySettings = null) {
     started: false,
     exporting: false,
     parts: 0,
+    stagedBytes: 0,
   };
   jobs.set(tabId, job);
   retryOffers.delete(tabId);
@@ -58,7 +61,7 @@ async function capture(tab, temporarySettings = null) {
     await recordExport(job.id, tabId, 0);
     await browser.scripting.executeScript({
       target: { tabId },
-      files: ["src/locales.js", "src/frame-registration.js", "src/content.js"],
+      files: ["src/locales.js", "src/frame-registration.js", "src/zip.js", "src/content.js"],
     });
 
     const preferences = await browser.storage.local.get("settings");
@@ -136,7 +139,11 @@ async function capture(tab, temporarySettings = null) {
         await recordExport(job.id, tabId, parts);
         job.exporting = true;
         try {
-          await send(tabId, "complete", { filename, parts, exportId: job.id });
+          await send(tabId, "complete", {
+            filename, parts, exportId: job.id,
+            zipEligible: parts > 1 && parts <= ZIP_MAX_ENTRIES &&
+              job.stagedBytes > 0 && job.stagedBytes <= ZIP_MAX_IMAGE_BYTES,
+          });
         } catch (error) {
           job.exporting = false;
           throw error;
@@ -220,15 +227,27 @@ browser.runtime.onMessage.addListener((message, sender) => {
         job.cancelled = true;
       }
       return Promise.resolve({ accepted: Boolean(job && !job.exporting) });
-    case "stage":
+    case "stage": {
       if (!job || job.exporting || message.index !== job.parts + 1) {
         return Promise.reject(new Error("Unexpected image segment."));
       }
+      const prefix = /^data:image\/(?:jpeg|png|webp);base64,/.exec(message.image);
+      if (!prefix) {
+        return Promise.reject(new Error("Invalid screenshot image data."));
+      }
+      const length = message.image.length - prefix[0].length;
+      const pad = message.image.endsWith("==") ? 2 : message.image.endsWith("=") ? 1 : 0;
+      const byteLength = length / 4 * 3 - pad;
+      if (!Number.isSafeInteger(byteLength) || byteLength < 1) {
+        return Promise.reject(new Error("Invalid screenshot image size."));
+      }
       return stageSegment(job.id, message.index, message.image).then(async () => {
         job.parts += 1;
+        job.stagedBytes += byteLength;
         await recordExport(job.id, tabId, job.parts);
         return { stored: true };
       });
+    }
     case "read":
       return verifyExport(message.exportId, tabId, message.index)
         .then(() => readSegment(message.exportId, message.index))
