@@ -52,6 +52,30 @@ npx web-ext run --target=firefox-android --android-device=DEVICE_SERIAL --firefo
 
 For Firefox Nightly, use `org.mozilla.fenix`; for Beta, `org.mozilla.firefox_beta`. The temporary add-on is removed when the debugging session ends.
 
+## Automated release QA (0.3.11 candidate)
+
+### One-command desktop/CI suite
+
+Run `npm install` first and ensure Chrome/Chromium is installed for the 390px browser checks:
+
+```sh
+npm run qa:ci
+```
+
+This executes JavaScript syntax, Node unit/integration tests, ESLint, Mozilla extension lint/build, the real 390px browser UI test, static lab checks and a real Chromium pass across the eight test fixtures. It exits non-zero on failure.
+
+### Physical Firefox Android (real capture engine)
+
+1. Start the development add-on using `npx web-ext run --target=firefox-android --android-device=DEVICE_SERIAL --firefox-apk=org.mozilla.firefox`.
+2. **Quick (5 captures):** open [the smoke fixture](https://cyoann.github.io/longpage-snap/lab/fixture.html?case=baseline&qa=smoke) on the phone.
+3. **Full (11 captures):** open [the full fixture](https://cyoann.github.io/longpage-snap/lab/fixture.html?case=baseline&qa=full).
+4. Tap the **LongPage Snap extension action once** on that page. The site cannot invoke privileged Firefox APIs by itself.
+5. The extension switches scenarios within the same page without reloading, captures actual Firefox screenshot frames, and inspects staged image pixels (zone backgrounds, headings and FINISH). Download the result report with **Save JSON test report** when it completes.
+
+**Safeguards:** only the exact HTTPS controlled test fixture with `qa=smoke` or `qa=full` triggers the suite. There are no new broad browsing permissions, no preference writes and no automatic native download prompts for every test. Temporary image data is removed after each capture. The report lists each test and errors, plus test limitations. It does not include screenshot pixels.
+
+**Coverage limits:** the automated mobile pass validates samples, not every glyph. It does not verify Firefox's native download prompt acceptance, files in the Android Downloads folder, or screenshots of arbitrary sites. Those require separate release acceptance. The 18-case manual checklist remains the authoritative complete feature matrix. A green unit test run is not proof that the on-device suite has passed.
+
 ## Public test lab
 
 The [LongPage Snap test lab](https://cyoann.github.io/longpage-snap/lab/) is hosted from the repository's `main/docs` GitHub Pages source. Until Pages is enabled in repository settings, the link may be unavailable.
