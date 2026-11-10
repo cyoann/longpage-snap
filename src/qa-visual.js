@@ -86,6 +86,7 @@
     let checkedZones=0,checkedHeadings=0;
     let checkedFinish=false;
     const seen=new Set();
+    const seenColors=new Set();
     const finishRect=finish.getBoundingClientRect();
     const finishTop=finishRect.top+scrollY;
     for (let i=1;i<=parts;i++) {
@@ -111,21 +112,29 @@
       }
       const end=offset+image.naturalHeight;
       for (const zone of expected) {
-        if (seen.has(zone.number) || !zone.heading) { continue; }
+        // Heading and color probes may fall in DIFFERENT image parts.
+        // Evaluate them independently instead of losing a probe at a seam.
         const headingY=(zone.heading.top+zone.heading.height/2)*scale;
-        if (headingY<offset||headingY>=end) { continue; }
-        seen.add(zone.number);
-        const headingPixels=region(image,offset,scale,zone.heading);
-        const count=inkCount(headingPixels);
-        if (count<8) {
-          failures.push("ZONE "+String(zone.number).padStart(2,"0")+
-            ": heading pixels missing at capture seam.");
-        } else {
-          checkedHeadings++;
+        if (!seen.has(zone.number) && headingY>=offset && headingY<end) {
+          seen.add(zone.number);
+          const headingPixels=region(image,offset,scale,zone.heading);
+          const count=inkCount(headingPixels);
+          if (count<8) {
+            failures.push("ZONE "+String(zone.number).padStart(2,"0")+
+              ": heading pixels missing at capture seam.");
+          } else {
+            checkedHeadings++;
+          }
+          if (!zone.lazyLoaded) {
+            failures.push("ZONE "+zone.number+": lazy image did not load.");
+          }
         }
         const y=Math.floor((zone.top+zone.height*0.66)*scale-offset);
         const x=Math.floor((zone.left+12)*scale);
-        if (y>=0&&y<image.naturalHeight&&x>=0&&x<image.naturalWidth&&zone.background) {
+        if (!seenColors.has(zone.number) &&
+            y>=0 && y<image.naturalHeight &&
+            x>=0 && x<image.naturalWidth && zone.background) {
+          seenColors.add(zone.number);
           const actual=sample(image,x,y);
           const difference=actual.reduce((sum,channel,k)=>
             sum+Math.abs(channel-zone.background[k]),0)/3;
@@ -135,10 +144,6 @@
           } else {
             checkedZones++;
           }
-        }
-        if (!zone.lazyLoaded) {
-          failures.push("ZONE "+zone.number+
-            ": lazy image did not load.");
         }
       }
       const finishCenter=(finishTop+finishRect.height/2)*scale;
