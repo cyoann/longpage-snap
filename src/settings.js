@@ -120,3 +120,23 @@ export function shouldRetrySingleGrowth(settings, error, attempts) {
   const message = typeof error?.message === "string" ? error.message : String(error);
   return /(?:this|the) page grew beyond (?:the available single-image|the single-image canvas) (?:memory or dimension )?limit/i.test(message);
 }
+
+/**
+ * Only recognizable Single Image limitations permit a one-tap, user-approved
+ * retry. Capture/security/storage errors are not recoverable by changing mode.
+ * The fallback does not modify browser.storage.local.
+ */
+export function singleImageFallback(settings, error) {
+  if (settings?.mode !== "single") {
+    return null;
+  }
+  const message = typeof error?.message === "string" ? error.message : String(error ?? "");
+  const knownLimit = [
+    /A readable single image cannot fit this device\b/i,
+    /A single image cannot fit this device's canvas\b/i,
+    /(?:This|The) page grew beyond (?:the available single-image|the single-image canvas) (?:memory or dimension )?limit\b/i,
+    /The single image exceeds the file-size limit\b/i,
+    /Single Image could not fit into one file\b/i,
+  ].some((pattern) => pattern.test(message));
+  return knownLimit ? { code: "single-image-limit", mode: "automatic" } : null;
+}
