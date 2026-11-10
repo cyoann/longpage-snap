@@ -95,7 +95,11 @@
     "zipTooLarge": "This capture is too large for a safe ZIP on this device. Save images individually.",
     "downloadDiagnostics": "Download diagnostics JSON",
     "diagnosticExportFailed": "Unable to export capture diagnostics.",
-    "diagnosticsReadyHint": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
+    "diagnosticsReadyHint": "Screenshot download requested. Save the diagnostic JSON before clicking Done.",
+    "qaFinished": "Automated QA report",
+    "qaSummary": "{passed} passed · {failed} failed · {blocked} blocked",
+    "qaLimitations": "Checks inspect real captured image pixels. Native Firefox download prompts and every text glyph cannot be verified automatically.",
+    "qaDownload": "Save JSON test report"
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -190,7 +194,11 @@
     "zipTooLarge": "Cette capture est trop volumineuse pour un ZIP sûr sur cet appareil. Enregistrez les images séparément.",
     "downloadDiagnostics": "Télécharger les diagnostics JSON",
     "diagnosticExportFailed": "Impossible d’exporter les diagnostics de capture.",
-    "diagnosticsReadyHint": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer."
+    "diagnosticsReadyHint": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer.",
+    "qaFinished": "Rapport de tests automatisés",
+    "qaSummary": "{passed} réussis · {failed} échecs · {blocked} bloqués",
+    "qaLimitations": "Les contrôles inspectent les pixels des captures réelles. Les confirmations de téléchargement Firefox et chaque glyphe ne peuvent pas être vérifiés automatiquement.",
+    "qaDownload": "Enregistrer le rapport JSON"
   }
 };
   const locale = (choice, detected = "") => {
