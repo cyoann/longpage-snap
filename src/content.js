@@ -848,6 +848,28 @@
       throw new Error("Screenshot alignment gap detected.");
     }
 
+    // Repair only the very end of an already-written frame when the new,
+    // aligned screenshot contains a substantial matching overlap. The old
+    // pixels may have been captured while Android's viewport was changing.
+    // Previously every overlapping pixel was discarded, so missing title
+    // rows in the old frame were permanently lost.
+    const repair = writer.canvas && globalThis.LongPageSnapFrameRegistration
+      ?.planSeamRefresh?.({
+        top,
+        covered: writer.covered,
+        screenshotEnd: end,
+        segmentStart: writer.start,
+        segmentHeight: writer.canvas.height,
+      });
+    if (repair) {
+      writer.context.drawImage(
+        image,
+        0, repair.sourceY * writer.sourceScale / writer.scale,
+        image.naturalWidth, repair.height * writer.sourceScale / writer.scale,
+        0, repair.destinationY, writer.width, repair.height,
+      );
+    }
+
     let cursor = Math.max(writer.covered, top);
     while (cursor < end) {
       if (writer.canvas && cursor >= writer.start + writer.canvas.height) {
