@@ -83,7 +83,16 @@
     "singleLimitRetryHint": "Retry this capture in Automatic mode. It may create several images. Your saved Single Image setting will not change.",
     "retryAutomatic": "Retry in Automatic mode",
     "retryStarting": "Starting a new capture with safe image splitting…",
-    "retryUnavailable": "The retry could not start. Close this dialog and try again."
+    "retryUnavailable": "The retry could not start. Close this dialog and try again.",
+    "saveZip": "Save all as ZIP",
+    "saveIndividually": "Save images individually",
+    "zipOptionHint": "{n} images ready. Save them in a single ZIP file or individually.",
+    "zipProgress": "Preparing ZIP · image {n} of {total}",
+    "zipRequested": "ZIP download requested. Confirm the Firefox download prompt.",
+    "zipReadyHint": "If Firefox blocks the ZIP download, choose Save images individually.",
+    "zipFailed": "ZIP could not be created. You can still save images individually.",
+    "zipUnavailable": "ZIP export is not supported here. Save images individually.",
+    "zipTooLarge": "This capture is too large for a safe ZIP on this device. Save images individually."
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -166,7 +175,16 @@
     "singleLimitRetryHint": "Réessayez cette capture en mode automatique. Plusieurs images pourront être créées. Votre préférence « Une seule image » restera inchangée.",
     "retryAutomatic": "Réessayer en mode automatique",
     "retryStarting": "Nouvelle capture avec découpage adapté à l’appareil…",
-    "retryUnavailable": "Impossible de relancer la capture. Fermez cette fenêtre et réessayez."
+    "retryUnavailable": "Impossible de relancer la capture. Fermez cette fenêtre et réessayez.",
+    "saveZip": "Tout enregistrer en ZIP",
+    "saveIndividually": "Enregistrer les images séparément",
+    "zipOptionHint": "{n} images prêtes. Enregistrez-les dans un seul fichier ZIP ou séparément.",
+    "zipProgress": "Préparation du ZIP · image {n} sur {total}",
+    "zipRequested": "Téléchargement du ZIP demandé. Confirmez dans Firefox.",
+    "zipReadyHint": "Si Firefox bloque le téléchargement ZIP, choisissez l’enregistrement séparé.",
+    "zipFailed": "Impossible de créer le ZIP. Vous pouvez enregistrer les images séparément.",
+    "zipUnavailable": "L’export ZIP n’est pas disponible ici. Enregistrez les images séparément.",
+    "zipTooLarge": "Cette capture est trop volumineuse pour un ZIP sûr sur cet appareil. Enregistrez les images séparément."
   }
 };
   const locale = (choice, detected = "") => {
