@@ -108,11 +108,17 @@
     for (let i = 0; i < values.length; i += 4) {
       const red = values[i], green = values[i + 1], blue = values[i + 2];
       if (marker.kind === "heading") {
-        if (Math.max(red, green, blue) < 115) active += 1;
+        if (Math.max(red, green, blue) < 115) {
+          active += 1;
+        }
       } else if (marker.kind === "bright") {
-        if (Math.min(red, green, blue) > 185) active += 1;
+        if (Math.min(red, green, blue) > 185) {
+          active += 1;
+        }
       } else if (marker.kind === "blue") {
-        if (blue > red + 28 && blue > green + 19 && red < 160) active += 1;
+        if (blue > red + 28 && blue > green + 19 && red < 160) {
+          active += 1;
+        }
       }
     }
     const minimum = marker.kind === "blue" ? 5 : marker.kind === "bright" ? 10 : 12;
