@@ -74,5 +74,48 @@
       error: nominal.error,
     };
   }
-  globalThis.LongPageSnapFrameRegistration = Object.freeze({ alignFramePixels });
+  /**
+   * Frame registration alone does not fix previously captured pixels that
+   * were temporarily blank when Firefox moved its toolbar or painted content.
+   * A later screenshot already overlaps those pixels, but the stitcher
+   * previously discarded that entire overlap. Refresh a small, bounded tail
+   * adjacent to the seam from the new screenshot, without shifting coverage.
+   *
+   * This never rewrites a previously staged segment. It is intentionally
+   * conservative: a sufficiently large overlap must include the whole tail.
+   */
+  function planSeamRefresh({
+    top, covered, screenshotEnd, segmentStart, segmentHeight,
+  }) {
+    if (![top, covered, screenshotEnd, segmentStart, segmentHeight].every(
+      (value) => Number.isFinite(value)
+    ) || segmentHeight <= 0 || top >= covered ||
+        covered > segmentStart + segmentHeight ||
+        screenshotEnd < covered) {
+      return null;
+    }
+    const overlap = covered - Math.max(top, segmentStart);
+    if (overlap < 32) {
+      return null;
+    }
+    const height = Math.min(32, Math.floor(overlap * 0.4));
+    if (height < 12) {
+      return null;
+    }
+    const outputTop = covered - height;
+    if (outputTop < Math.max(top, segmentStart) ||
+        outputTop + height > screenshotEnd) {
+      return null;
+    }
+    return {
+      outputTop,
+      height,
+      sourceY: outputTop - top,
+      destinationY: outputTop - segmentStart,
+    };
+  }
+
+  globalThis.LongPageSnapFrameRegistration = Object.freeze({
+    alignFramePixels, planSeamRefresh,
+  });
 })();
