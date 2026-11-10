@@ -174,11 +174,16 @@ async function capture(tab, temporarySettings = null, qaCase = null) {
       retryOffer = temporarySettings ? null : singleImageFallback(settings, error);
       console.error("LongPage Snap:", message);
       if (qaCase) {
-        return {status:"fail",parts:job.parts,reason:message,failures:[message]};
+        return {status:job.cancelled?"blocked":"fail",
+          parts:job.parts,reason:job.cancelled?"Cancelled by user":message,
+          failures:[job.cancelled?"Cancelled by user":message]};
       }
       if (job.started) {
         await send(tabId, "fail", { message, code: retryOffer?.code ?? null }).catch(() => {});
       }
+    } else if (qaCase) {
+      return {status:"blocked",parts:job.parts,reason:"Cancelled by user",
+        failures:["Cancelled by user"]};
     }
   } finally {
     if (!job.exporting) {
@@ -313,6 +318,9 @@ async function runQa(tab, mode) {
         results.push({id:testcase.id,fixture:testcase.fixture,
           mode:testcase.mode,format:testcase.format,
           ...inspected});
+        if (inspected?.status==="blocked") {
+          break;
+        }
       } catch(error) {
         results.push({id:testcase.id,fixture:testcase.fixture,status:"fail",
           reason:error.message||String(error)});
