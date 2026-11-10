@@ -1413,7 +1413,8 @@
   }
 
   function switchQaFixture(id) {
-    if (!globalThis.LongPageSnapQaSuite?.qaAllowedScenario?.(id)) {
+    if (!globalThis.LongPageSnapDiagnostics?.fixtureName(window.location) ||
+        !["baseline","sticky","lazy","growth","long","nested","wide","motion"].includes(id)) {
       return {switched:false};
     }
     dispose();
