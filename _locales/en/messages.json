@@ -274,5 +274,8 @@
   },
   "diagnosticExportFailed": {
     "message": "Unable to export capture diagnostics."
+  },
+  "diagnosticsReadyHint": {
+    "message": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
   }
 }
