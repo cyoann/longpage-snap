@@ -277,5 +277,41 @@
   },
   "diagnosticsReadyHint": {
     "message": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer."
+  },
+  "qaTitle": {
+    "message": "Tests de capture automatisés"
+  },
+  "qaStartHint": {
+    "message": "Exécute tous les tests contrôlés avec le véritable moteur de capture. Aucune capture n’est téléchargée."
+  },
+  "qaRun": {
+    "message": "Lancer tous les tests"
+  },
+  "qaCaptureNormally": {
+    "message": "Capturer cette page normalement"
+  },
+  "qaExport": {
+    "message": "Télécharger le rapport JSON"
+  },
+  "qaClose": {
+    "message": "Fermer"
+  },
+  "qaPrivacy": {
+    "message": "Ce test fonctionne uniquement sur le laboratoire LongPage Snap. Les images restent locales et sont supprimées après chaque cas. La confirmation des téléchargements Firefox doit encore être vérifiée manuellement."
+  },
+  "qaSummary": {
+    "message": "Résultats des tests"
+  },
+  "qaCaseCount": {
+    "message": "15 tests de capture automatisés · 3 vérifications manuelles"
+  },
+  "qaDoneHint": {
+    "message": "Consultez les résultats. Les échecs signalent un problème de capture ou de repère visuel ; les contrôles manuels nécessitent une confirmation humaine."
+  },
+  "qaStartFailed": {
+    "message": "Impossible de lancer les tests dans cet onglet."
+  },
+  "qaExportFailed": {
+    "message": "Impossible d’exporter le rapport"
   }
 }
