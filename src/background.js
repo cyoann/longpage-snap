@@ -262,7 +262,9 @@ async function runSuite(tab) {
         status:outcome.status,
         reason:String(outcome.reason || "").slice(0,250),
       });
-      if (run.cancelled) break;
+      if (run.cancelled) {
+        break;
+      }
     }
   } catch (error) {
     report.error=error instanceof Error ? error.message : "Automated suite stopped.";
