@@ -1,4 +1,5 @@
 import { screenshotFilename } from "./filename.js";
+import { qaRequest, qaCases, qaSettings, qaReport } from "./qa-suite.js";
 import { nextScrollY } from "./capture-plan.js";
 import { extensionFor, normalizeSettings, shouldRetrySingleGrowth, singleImageFallback } from "./settings.js";
 import {
@@ -16,6 +17,7 @@ const ZIP_MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const ZIP_MAX_ENTRIES = 80;
 const jobs = new Map();
 const retryOffers = new Map();
+const qaRunning = new Set();
 
 function send(tabId, type, details = {}) {
   return browser.tabs.sendMessage(tabId, { scope: SCOPE, type, ...details });
@@ -37,7 +39,7 @@ async function discard(tabId, job) {
   }
 }
 
-async function capture(tab, temporarySettings = null) {
+async function capture(tab, temporarySettings = null, qaCase = null) {
   const { id: tabId, windowId } = tab;
   if (!Number.isInteger(tabId) || !Number.isInteger(windowId) || jobs.has(tabId)) {
     return;
@@ -61,13 +63,17 @@ async function capture(tab, temporarySettings = null) {
     await recordExport(job.id, tabId, 0);
     await browser.scripting.executeScript({
       target: { tabId },
-      files: ["src/locales.js", "src/frame-registration.js", "src/zip.js", "src/capture-diagnostics.js", "src/viewport-bounds.js", "src/content.js"],
+      files: ["src/locales.js", "src/frame-registration.js", "src/zip.js", "src/capture-diagnostics.js", "src/viewport-bounds.js", "src/qa-visual.js", "src/content.js"],
     });
 
     const preferences = await browser.storage.local.get("settings");
     settings = temporarySettings ?? normalizeSettings(preferences.settings);
     job.started = true;
     const page = await send(tabId, "begin", { settings });
+    if (qaCase) {
+      await send(tabId, "qa-case", { id:qaCase.id,
+        index:qaCase.index, total:qaCase.total });
+    }
     const filename = screenshotFilename(page.title).replace(/\.jpg$/i, "." + extensionFor(settings.format));
     let targetY = 0;
     let coveredPixels = 0;
@@ -137,6 +143,14 @@ async function capture(tab, temporarySettings = null) {
           throw new Error("Single Image could not fit into one file. Choose Automatic export.");
         }
         await recordExport(job.id, tabId, parts);
+        if (qaCase) {
+          // This is the REAL capture output: inspect staged pixels before
+          // existing finally/cleanup deletes temporary IndexedDB records.
+          return await send(tabId, "qa-validate", {
+            parts, exportId:job.id, scenario:qaCase.fixture,
+            mode:settings.mode, format:settings.format,
+          });
+        }
         job.exporting = true;
         try {
           await send(tabId, "complete", {
@@ -159,9 +173,17 @@ async function capture(tab, temporarySettings = null) {
       const message = error instanceof Error ? error.message : "Capture failed.";
       retryOffer = temporarySettings ? null : singleImageFallback(settings, error);
       console.error("LongPage Snap:", message);
+      if (qaCase) {
+        return {status:job.cancelled?"blocked":"fail",
+          parts:job.parts,reason:job.cancelled?"Cancelled by user":message,
+          failures:[job.cancelled?"Cancelled by user":message]};
+      }
       if (job.started) {
         await send(tabId, "fail", { message, code: retryOffer?.code ?? null }).catch(() => {});
       }
+    } else if (qaCase) {
+      return {status:"blocked",parts:job.parts,reason:"Cancelled by user",
+        failures:["Cancelled by user"]};
     }
   } finally {
     if (!job.exporting) {
@@ -264,8 +286,67 @@ browser.runtime.onMessage.addListener((message, sender) => {
   }
 });
 
+async function runQa(tab, mode) {
+  const tabId=tab.id;
+  if (qaRunning.has(tabId) || jobs.has(tabId)) { return; }
+  qaRunning.add(tabId);
+  const results=[];
+  const cases=qaCases(mode);
+  try {
+    const {settings:stored} = await browser.storage.local.get("settings");
+    const base=normalizeSettings(stored);
+    // The same user gesture authorizes the controlled tab. Fixture switching
+    // uses replaceState and never navigates to a different origin.
+    await browser.scripting.executeScript({
+      target:{tabId},
+      files:["src/locales.js","src/frame-registration.js","src/zip.js",
+        "src/capture-diagnostics.js","src/viewport-bounds.js",
+        "src/qa-visual.js","src/content.js"],
+    });
+    for (const testcase of cases) {
+      try {
+        await assertActive(tabId,tab.windowId);
+        const liveTab=await browser.tabs.get(tabId);
+        if (!qaRequest(liveTab.url)) {
+          throw new Error("QA stopped: the controlled test page was left.");
+        }
+        const changed=await send(tabId,"qa-switch",{fixture:testcase.fixture});
+        if (!changed?.switched) { throw new Error("Controlled fixture switch failed."); }
+        const inspected=await capture(tab,qaSettings(base,testcase),{
+          ...testcase,index:results.length+1,total:cases.length,
+        });
+        results.push({id:testcase.id,fixture:testcase.fixture,
+          mode:testcase.mode,format:testcase.format,
+          ...inspected});
+        if (inspected?.status==="blocked") {
+          break;
+        }
+      } catch(error) {
+        results.push({id:testcase.id,fixture:testcase.fixture,status:"fail",
+          reason:error.message||String(error)});
+      }
+    }
+  } catch(error) {
+    results.push({id:"suite-start",status:"blocked",
+      reason:error.message||String(error)});
+  } finally {
+    qaRunning.delete(tabId);
+    const report=qaReport(results,mode,browser.runtime.getManifest().version);
+    try {
+      await send(tabId,"qa-report",{report});
+    } catch(error) {
+      console.error("LongPage Snap: QA report could not be displayed",error,report);
+    }
+  }
+}
+
 browser.action.onClicked.addListener((tab) => {
-  void capture(tab);
+  const mode=qaRequest(tab.url);
+  if (mode) {
+    void runQa(tab,mode);
+  } else {
+    void capture(tab);
+  }
 });
 
 function releaseTab(tabId) {

@@ -13,15 +13,38 @@ const root = resolve(fileURLToPath(new URL("../docs/", import.meta.url)));
 const out = resolve(fileURLToPath(new URL("../.site-preview/", import.meta.url)));
 mkdirSync(out, { recursive:true });
 
-const chrome = [process.env.CHROME_PATH, "/usr/bin/google-chrome", "/usr/bin/chromium",
-  "/usr/bin/chromium-browser"].find((path) => path && existsSync(path)) ||
-  ["google-chrome", "chromium", "chromium-browser"].find(
-    (name) => spawnSync("which", [name], {encoding:"utf8"}).status === 0
-  );
-if (!chrome) {
-  throw new Error("Chrome / Chromium is required for site browser checks.");
+function browserCandidates() {
+  const roots = [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"],
+    process.env.LOCALAPPDATA].filter(Boolean);
+  const windows = roots.flatMap((root) => [
+    join(root, "Google", "Chrome", "Application", "chrome.exe"),
+    join(root, "Microsoft", "Edge", "Application", "msedge.exe"),
+    join(root, "Chromium", "Application", "chrome.exe"),
+  ]);
+  return [
+    process.env.CHROME_PATH, ...windows,
+    "/usr/bin/google-chrome", "/usr/bin/chromium",
+    "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge",
+  ].filter(Boolean);
 }
-const MIME = {".html":"text/html", ".js":"text/javascript", ".css":"text/css"};
+function detectBrowserBinary() {
+  const known = browserCandidates().find((path) => existsSync(path));
+  if (known) {
+    return known;
+  }
+  const locator = process.platform === "win32" ? "where" : "which";
+  for (const name of ["google-chrome", "chromium", "chromium-browser",
+    "chrome", "msedge", "microsoft-edge"]) {
+    if (spawnSync(locator, [name], {encoding:"utf8"}).status === 0) {
+      return name;
+    }
+  }
+  throw new Error("Chrome, Chromium or Microsoft Edge is required for browser QA. " +
+    "Set CHROME_PATH to the browser executable if detection fails.");
+}
+
+const chrome = detectBrowserBinary();
+const MIME = {".html":"text/html",".js":"text/javascript",".css":"text/css"};
 const server = createServer((request, response) => {
   const requestPath = new URL(request.url, "http://localhost").pathname;
   const file = resolve(root, "." + (requestPath.endsWith("/") ? requestPath + "index.html" : requestPath));

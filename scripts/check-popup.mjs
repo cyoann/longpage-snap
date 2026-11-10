@@ -16,27 +16,37 @@ if (widths !== "390" || waiver.viewport.width !== 390 ||
   throw new Error("Only 390px is permitted for the extension panel.");
 }
 
-function chromeBinary() {
-  const paths = [
-    process.env.CHROME_PATH,
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-    "/usr/bin/chromium-browser",
+function browserCandidates() {
+  const roots = [process.env.PROGRAMFILES, process.env["PROGRAMFILES(X86)"],
+    process.env.LOCALAPPDATA].filter(Boolean);
+  const windows = roots.flatMap((root) => [
+    join(root, "Google", "Chrome", "Application", "chrome.exe"),
+    join(root, "Microsoft", "Edge", "Application", "msedge.exe"),
+    join(root, "Chromium", "Application", "chrome.exe"),
+  ]);
+  return [
+    process.env.CHROME_PATH, ...windows,
+    "/usr/bin/google-chrome", "/usr/bin/chromium",
+    "/usr/bin/chromium-browser", "/usr/bin/microsoft-edge",
   ].filter(Boolean);
-  for (const path of paths) {
-    if (existsSync(path)) {
-      return path;
-    }
+}
+function detectBrowserBinary() {
+  const known = browserCandidates().find((path) => existsSync(path));
+  if (known) {
+    return known;
   }
-  for (const name of ["google-chrome", "chromium", "chromium-browser"]) {
-    if (spawnSync("which", [name], { encoding:"utf8" }).status === 0) {
+  const locator = process.platform === "win32" ? "where" : "which";
+  for (const name of ["google-chrome", "chromium", "chromium-browser",
+    "chrome", "msedge", "microsoft-edge"]) {
+    if (spawnSync(locator, [name], {encoding:"utf8"}).status === 0) {
       return name;
     }
   }
-  throw new Error("Chrome/Chromium is required for the mobile browser check.");
+  throw new Error("Chrome, Chromium or Microsoft Edge is required for browser QA. " +
+    "Set CHROME_PATH to the browser executable if detection fails.");
 }
 
-const chrome = chromeBinary();
+const chrome = detectBrowserBinary();
 const output = join(root, ".mobile-check");
 mkdirSync(output, { recursive:true });
 

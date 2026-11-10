@@ -5,3 +5,6 @@ web-ext-artifacts/
 *.log
 .env
 .mobile-check/
+.qa-results/
+.site-preview/
+.web-ext-artifacts/

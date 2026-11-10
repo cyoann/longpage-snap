@@ -277,5 +277,20 @@
   },
   "diagnosticsReadyHint": {
     "message": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
+  },
+  "qaFinished": {
+    "message": "Automated QA report"
+  },
+  "qaSummary": {
+    "message": "{passed} passed · {failed} failed · {blocked} blocked"
+  },
+  "qaLimitations": {
+    "message": "Checks inspect real captured image pixels. Native Firefox download prompts and every text glyph cannot be verified automatically."
+  },
+  "qaDownload": {
+    "message": "Save JSON test report"
+  },
+  "qaProgress": {
+    "message": "Automated test {n} of {total}"
   }
 }
