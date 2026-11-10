@@ -1179,6 +1179,16 @@
         state.done = true;
         if (state.parts === 1) {
           session.saving = false;
+          if (session.trace) {
+            // Normal Single Image exports still close automatically.
+            // Controlled fixtures keep the panel open so the user can
+            // explicitly save the trace before clicking Done.
+            session.panel.textContent = t("diagnosticsReadyHint");
+            session.save.textContent = t("finishExport");
+            session.title.textContent = t("saveComplete");
+            session.dangerRow.style.display = "none";
+            return;
+          }
           await finishExport();
           return;
         }
