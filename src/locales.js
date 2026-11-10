@@ -99,7 +99,8 @@
     "qaFinished": "Automated QA report",
     "qaSummary": "{passed} passed · {failed} failed · {blocked} blocked",
     "qaLimitations": "Checks inspect real captured image pixels. Native Firefox download prompts and every text glyph cannot be verified automatically.",
-    "qaDownload": "Save JSON test report"
+    "qaDownload": "Save JSON test report",
+    "qaProgress": "Automated test {n} of {total}"
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -198,7 +199,8 @@
     "qaFinished": "Rapport de tests automatisés",
     "qaSummary": "{passed} réussis · {failed} échecs · {blocked} bloqués",
     "qaLimitations": "Les contrôles inspectent les pixels des captures réelles. Les confirmations de téléchargement Firefox et chaque glyphe ne peuvent pas être vérifiés automatiquement.",
-    "qaDownload": "Enregistrer le rapport JSON"
+    "qaDownload": "Enregistrer le rapport JSON",
+    "qaProgress": "Test automatisé {n} sur {total}"
   }
 };
   const locale = (choice, detected = "") => {
