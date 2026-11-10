@@ -12,6 +12,7 @@
     "alignedTop", "delta", "error", "coveredBefore", "coveredAfter",
     "start", "end", "overlap", "scale", "sourceScale", "remainingPixels",
     "segmentStart", "segmentHeight", "parts", "targetY",
+    "clippedSourcePixels", "viewportOffset",
     "zone11Top", "zone11Bottom", "zone11HeadingTop", "zone11HeadingBottom",
     "finishTop", "finishBottom",
   ]);
