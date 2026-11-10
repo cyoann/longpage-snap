@@ -107,7 +107,9 @@
     "qaCaseCount": "15 automated capture checks · 3 manual checks",
     "qaDoneHint": "Review the results. Failures indicate a capture or visual-marker problem; manual checks require human confirmation.",
     "qaStartFailed": "Could not start the test runner on this tab.",
-    "qaExportFailed": "Could not export the report"
+    "qaExportFailed": "Could not export the report",
+    "qaOpen": "Automated regression tests",
+    "qaOpenHint": "Open the controlled fixture, then tap LongPage Snap in Firefox to run the complete suite."
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -214,7 +216,9 @@
     "qaCaseCount": "15 tests de capture automatisés · 3 vérifications manuelles",
     "qaDoneHint": "Consultez les résultats. Les échecs signalent un problème de capture ou de repère visuel ; les contrôles manuels nécessitent une confirmation humaine.",
     "qaStartFailed": "Impossible de lancer les tests dans cet onglet.",
-    "qaExportFailed": "Impossible d’exporter le rapport"
+    "qaExportFailed": "Impossible d’exporter le rapport",
+    "qaOpen": "Tests de régression automatisés",
+    "qaOpenHint": "Ouvrez la page de test, puis touchez LongPage Snap dans Firefox pour lancer la suite complète."
   }
 };
   const locale = (choice, detected = "") => {
