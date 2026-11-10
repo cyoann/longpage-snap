@@ -172,6 +172,43 @@ try {
     await capture("lab-mobile");
   });
 
+  await check("Same-document scenario switching preserves permissions and cleanup", async () => {
+    await visit("/lab/fixture.html?case=baseline",
+      "document.documentElement.dataset.fixtureReady==='true'");
+    const before = await evaluate("performance.getEntriesByType('navigation').length");
+    await evaluate("document.dispatchEvent(new CustomEvent('longpage-snap:select-fixture',{detail:'sticky'}))");
+    await waitFor("document.documentElement.dataset.fixtureCase==='sticky' &&
+      document.querySelectorAll('#zones>.zone').length===11",
+      "sticky case switch");
+    const sticky = await evaluate("({fixed:document.querySelectorAll('.fixed-test').length, sticky:document.querySelectorAll('.sticky-test').length, path:location.pathname, navigations:performance.getEntriesByType('navigation').length})");
+    if (sticky.fixed!==1 || sticky.sticky!==1 ||
+        sticky.path!=="/lab/fixture.html" || sticky.navigations!==before) {
+      throw new Error("Same-document sticky setup failed: "+JSON.stringify(sticky));
+    }
+    await evaluate("document.dispatchEvent(new CustomEvent('longpage-snap:select-fixture',{detail:'lazy'}))");
+    await waitFor("document.documentElement.dataset.fixtureCase==='lazy' &&
+      document.querySelectorAll('#zones>.zone img').length===12",
+      "lazy case switch");
+    const lazy = await evaluate("({fixed:document.querySelectorAll('.fixed-test').length, sticky:document.querySelectorAll('.sticky-test').length, images:document.querySelectorAll('.zone img').length})");
+    if (lazy.fixed!==0 || lazy.sticky!==0 || lazy.images!==12) {
+      throw new Error("Previous sticky elements persisted: "+JSON.stringify(lazy));
+    }
+    await evaluate("document.dispatchEvent(new CustomEvent('longpage-snap:select-fixture',{detail:'growth'}))");
+    await waitFor("document.documentElement.dataset.fixtureCase==='growth'",
+      "growth case switch");
+    await evaluate("window.scrollTo(0,900)");
+    await waitFor("document.documentElement.dataset.growth==='complete'",
+      "growth after switching");
+    const count = await evaluate("document.querySelectorAll('#zones>.zone').length");
+    if(count!==14){ throw new Error("Growth added "+count+" zones after switch"); }
+    await evaluate("document.dispatchEvent(new CustomEvent('longpage-snap:select-fixture',{detail:'baseline'}))");
+    await waitFor("document.documentElement.dataset.fixtureCase==='baseline' &&
+      document.querySelectorAll('#zones>.zone').length===10",
+      "reset after dynamic growth");
+    const clean = await evaluate("!document.querySelector('.fixed-test') && !document.querySelector('.sticky-test') && !document.documentElement.dataset.growth");
+    if(!clean){ throw new Error("Fixture state not reset after batch switches"); }
+  });
+
   await check("Local image-verification controls render", async () => {
     await visit("/lab/verify.html", "!!document.querySelector('#inspect')");
     const ok = await evaluate("!!document.querySelector('input[type=file][multiple]') && document.querySelector('input[type=file]').accept.includes('.zip') && !!document.querySelector('#mode') && document.documentElement.scrollWidth<=390");
