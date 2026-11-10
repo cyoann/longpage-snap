@@ -55,6 +55,7 @@ const previews = new Map([
   ["/__panel",readFileSync(join(root, "test/fixtures/panel-preview.html"), "utf8")],
   ["/__retry",readFileSync(join(root, "test/fixtures/retry-preview.html"), "utf8")],
   ["/__zip",readFileSync(join(root, "test/fixtures/zip-preview.html"), "utf8")],
+  ["/__qa",readFileSync(join(root, "test/fixtures/qa-preview.html"), "utf8")],
 ]);
 const types = {".html":"text/html", ".css":"text/css", ".js":"text/javascript"};
 const server = createServer((request, response) => {
@@ -163,7 +164,7 @@ let failed = false;
 let client;
 try {
   client = await connect();
-  for (const kind of ["options","panel","retry","zip"]) {
+  for (const kind of ["options","panel","retry","zip","qa"]) {
     const url = "http://127.0.0.1:" + port + "/__" + kind;
     await client.command("Page.navigate", { url });
     const expected = "/__" + kind;

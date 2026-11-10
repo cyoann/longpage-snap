@@ -18,7 +18,7 @@ The Android extension is merged into [`main`](https://github.com/cyoann/longpage
 
 ## Status
 
-**Development preview 0.3.9 (diagnostic candidate) (ZIP export candidate) (one-tap Android recovery test).** Full-page capture and Android JPEG saving were tested on a physical device in earlier builds. The redesigned interface and export modes have passed automated checks and user-reported Android capture tests. The newly hosted test lab still needs full device acceptance testing.
+**Development preview 0.3.11 (automated regression test candidate).** The Firefox Android capture engine, ZIP output, and viewport correction have been tested on physical hardware. This branch adds a controlled one-click regression runner, pending an Android end-to-end test.
 
 ## Features
 
@@ -144,6 +144,16 @@ Real device trace on the Sticky fixture showed the final screenshot's scroll pos
 This branch treats `document.scrollingElement.scrollTop` / `window.scrollY` as the frame origin and limits written source rows to the reliable visible viewport. It retains existing bounded pixel matching as fallback, does not manipulate page CSS, and keeps the trace JSON on the eight controlled fixtures.
 
 **This is a hypothesis-driven candidate, not yet verified on Firefox Android.** Capture the Sticky and Lazy fixtures again, save both the original image and diagnostic JSON, and check that Zone 11 and FINISH are fully readable with no missing zones or duplicates. Compare frame offsets and source clipping against the reported 64.4px discrepancy before merging.
+
+## Automated regression mode — 0.3.11 candidate
+
+Start from **Settings → Automated regression tests** or from the **Automated test mode** link in the public test lab. On Firefox Android, tap the **LongPage Snap** add-on icon, then **Run all tests**. Do not navigate away during the run. A second tap on the add-on icon requests cancellation.
+
+**One authorization, one document.** The eight fixture scenarios now switch using a same-document event. Firefox's `activeTab` permission persists because there is no new document navigation. The extension requests **no new broad host permissions**. The normal capture action remains unchanged outside the explicit `?automation=1` lab URL.
+
+The runner performs **15 real capture checks** with temporary JPEG/PNG/WebP and Single/Automatic/Split configurations, covering all eight fixtures, long-page captures, lazy-loaded images, page growth, custom size limits and local ZIP assembly. Captures are staged in extension-owned IndexedDB, audited, and deleted after each case. It checks sequential zones, heading text contrast, unique zone colors, lazy image pixels, and START/FINISH markers using sampled rendered pixels. No native screenshot download prompts or image uploads are triggered. Saved settings remain unchanged.
+
+The JSON report has a separate status for **pass**, **fail**, **manual**, or **skipped**. Three checks are deliberately **manual**: confirming a native Firefox download, testing the user-facing Discard interaction, and reviewing device-specific resource-limit dialogs. These cannot be claimed complete from a web page or the background capture API. The suite does not replace physical verification on devices with different viewport/memory configurations. It is still an experimental candidate and must be validated with Firefox Android before merging.
 
 ## Known limitations
 

@@ -95,7 +95,21 @@
     "zipTooLarge": "This capture is too large for a safe ZIP on this device. Save images individually.",
     "downloadDiagnostics": "Download diagnostics JSON",
     "diagnosticExportFailed": "Unable to export capture diagnostics.",
-    "diagnosticsReadyHint": "Screenshot download requested. Save the diagnostic JSON before clicking Done."
+    "diagnosticsReadyHint": "Screenshot download requested. Save the diagnostic JSON before clicking Done.",
+    "qaTitle": "Automated capture tests",
+    "qaStartHint": "Run all controlled test cases using the real capture engine. No screenshots are downloaded.",
+    "qaRun": "Run all tests",
+    "qaCaptureNormally": "Capture this page normally",
+    "qaExport": "Download JSON report",
+    "qaClose": "Close",
+    "qaPrivacy": "This test runs only on LongPage Snap's controlled lab. Images remain local and are deleted after each case. Native Firefox download confirmation still requires manual testing.",
+    "qaSummary": "Test results",
+    "qaCaseCount": "15 automated capture checks · 3 manual checks",
+    "qaDoneHint": "Review the results. Failures indicate a capture or visual-marker problem; manual checks require human confirmation.",
+    "qaStartFailed": "Could not start the test runner on this tab.",
+    "qaExportFailed": "Could not export the report",
+    "qaOpen": "Automated regression tests",
+    "qaOpenHint": "Open the controlled fixture, then tap LongPage Snap in Firefox to run the complete suite."
   },
   "fr": {
     "extensionName": "LongPage Snap",
@@ -190,7 +204,21 @@
     "zipTooLarge": "Cette capture est trop volumineuse pour un ZIP sûr sur cet appareil. Enregistrez les images séparément.",
     "downloadDiagnostics": "Télécharger les diagnostics JSON",
     "diagnosticExportFailed": "Impossible d’exporter les diagnostics de capture.",
-    "diagnosticsReadyHint": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer."
+    "diagnosticsReadyHint": "Téléchargement de la capture demandé. Enregistrez les diagnostics JSON avant de terminer.",
+    "qaTitle": "Tests de capture automatisés",
+    "qaStartHint": "Exécute tous les tests contrôlés avec le véritable moteur de capture. Aucune capture n’est téléchargée.",
+    "qaRun": "Lancer tous les tests",
+    "qaCaptureNormally": "Capturer cette page normalement",
+    "qaExport": "Télécharger le rapport JSON",
+    "qaClose": "Fermer",
+    "qaPrivacy": "Ce test fonctionne uniquement sur le laboratoire LongPage Snap. Les images restent locales et sont supprimées après chaque cas. La confirmation des téléchargements Firefox doit encore être vérifiée manuellement.",
+    "qaSummary": "Résultats des tests",
+    "qaCaseCount": "15 tests de capture automatisés · 3 vérifications manuelles",
+    "qaDoneHint": "Consultez les résultats. Les échecs signalent un problème de capture ou de repère visuel ; les contrôles manuels nécessitent une confirmation humaine.",
+    "qaStartFailed": "Impossible de lancer les tests dans cet onglet.",
+    "qaExportFailed": "Impossible d’exporter le rapport",
+    "qaOpen": "Tests de régression automatisés",
+    "qaOpenHint": "Ouvrez la page de test, puis touchez LongPage Snap dans Firefox pour lancer la suite complète."
   }
 };
   const locale = (choice, detected = "") => {

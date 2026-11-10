@@ -1,11 +1,11 @@
 {
   "name": "longpage-snap",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "private": true,
   "type": "module",
   "description": "Full-page screenshots for Firefox on Android.",
   "scripts": {
-    "check": "node --check src/background.js && node --check src/content.js && node --check src/capture-plan.js && node --check src/filename.js && node --check src/segment-store.js && node --check src/settings.js && node --check options/options.js && node --check src/locales.js && node --check scripts/check-popup.mjs && node --check src/frame-registration.js && node --check src/zip.js && node --check src/capture-diagnostics.js && node --check src/viewport-bounds.js",
+    "check": "node --check src/background.js && node --check src/content.js && node --check src/capture-plan.js && node --check src/filename.js && node --check src/segment-store.js && node --check src/settings.js && node --check options/options.js && node --check src/locales.js && node --check scripts/check-popup.mjs && node --check src/frame-registration.js && node --check src/zip.js && node --check src/capture-diagnostics.js && node --check src/viewport-bounds.js && node --check src/qa-suite.js && node --check src/qa-audit.js && node --check src/qa-panel.js",
     "test": "node --test \"test/*.test.js\"",
     "lint": "eslint .",
     "check:mobile": "node scripts/check-popup.mjs --widths 390 --waiver test/mobile-check-waiver.json"
