@@ -241,5 +241,32 @@
   },
   "retryUnavailable": {
     "message": "The retry could not start. Close this dialog and try again."
+  },
+  "saveZip": {
+    "message": "Save all as ZIP"
+  },
+  "saveIndividually": {
+    "message": "Save images individually"
+  },
+  "zipOptionHint": {
+    "message": "{n} images ready. Save them in a single ZIP file or individually."
+  },
+  "zipProgress": {
+    "message": "Preparing ZIP · image {n} of {total}"
+  },
+  "zipRequested": {
+    "message": "ZIP download requested. Confirm the Firefox download prompt."
+  },
+  "zipReadyHint": {
+    "message": "If Firefox blocks the ZIP download, choose Save images individually."
+  },
+  "zipFailed": {
+    "message": "ZIP could not be created. You can still save images individually."
+  },
+  "zipUnavailable": {
+    "message": "ZIP export is not supported here. Save images individually."
+  },
+  "zipTooLarge": {
+    "message": "This capture is too large for a safe ZIP on this device. Save images individually."
   }
 }
