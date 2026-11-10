@@ -613,7 +613,7 @@ test("multi-image export offers one ZIP, then retains files until Close", async 
   assert.equal(blob.type, "application/zip");
   assert.equal(app.staged.size, 2,
     "Keep original parts until user confirms the export is finished");
-  await clickButton(app, "Close");
+  await clickButton(app, "Done");
   assert.equal(app.staged.size, 0);
 });
 
