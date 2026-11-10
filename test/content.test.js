@@ -548,3 +548,25 @@ test("non-recoverable failures do not offer Automatic retry", async () => {
   assert.equal(result.offered, false);
   assert.ok(!app.buttons.some((button) => button.textContent === "Réessayer en mode automatique"));
 });
+
+test("closing a failed capture releases the pending recovery offer", async () => {
+  const app = harness({ width: 390, height: 600, pageHeight: 5000 });
+  await app.request("begin", { settings: { mode: "single", language: "fr" } });
+  await app.request("fail", {
+    message: "A readable single image cannot fit this device.",
+    code: "single-image-limit",
+  });
+  await app.request("cleanup");
+  await app.request("offer-retry", { code: "single-image-limit" });
+  await clickButton(app, "Fermer");
+  assert.equal(
+    app.messages.filter((message) => message.type === "dismiss-retry").length,
+    1,
+    "Closing the dialog should invalidate background retry authorization",
+  );
+  assert.equal(
+    app.messages.filter((message) => message.type === "retry-automatic").length,
+    0,
+    "Dismissing the dialog must not start an automatic capture",
+  );
+});
