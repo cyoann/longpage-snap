@@ -36,7 +36,7 @@ export const CHECK_COUNT = RUN_CASES.length + MANUAL_CHECKS.length;
 
 export function isFixtureTab(url) {
   try {
-    const parsed = new URL(url);
+    const parsed = new globalThis.URL(url);
     return parsed.origin === FIXTURE_ORIGIN && parsed.pathname === FIXTURE_PATH &&
       parsed.searchParams.get("automation") === "1" &&
       !parsed.username && !parsed.password;
