@@ -114,3 +114,54 @@ test("aligns a shifted banded-page footer using stable color and text edges", ()
   assert.equal(result.delta, 50);
   assert.equal(result.confidence, "matched");
 });
+
+test("repair uses the newer image only for a bounded tail at a true overlap", () => {
+  const plan = runtime.LongPageSnapFrameRegistration.planSeamRefresh;
+  const repair = plan({
+    top: 310, covered: 450, screenshotEnd: 650,
+    segmentStart: 0, segmentHeight: 1200,
+  });
+  assert.equal(repair.outputTop, 418);
+  assert.equal(repair.height, 32);
+  assert.equal(repair.sourceY, 108);
+  assert.equal(repair.destinationY, 418);
+});
+
+test("repair skips tiny overlaps, gaps and previously exported segments", () => {
+  const plan = runtime.LongPageSnapFrameRegistration.planSeamRefresh;
+  assert.equal(plan({
+    top: 435, covered: 450, screenshotEnd: 660,
+    segmentStart: 0, segmentHeight: 1000,
+  }), null, "Do not repaint when overlap is only 15 px");
+  assert.equal(plan({
+    top: 510, covered: 450, screenshotEnd: 700,
+    segmentStart: 0, segmentHeight: 1000,
+  }), null, "Never repair an alignment gap");
+  assert.equal(plan({
+    top: 310, covered: 450, screenshotEnd: 700,
+    segmentStart: 460, segmentHeight: 1000,
+  }), null, "Never repaint a previously staged segment");
+  assert.equal(plan({
+    top: 310, covered: 450, screenshotEnd: 440,
+    segmentStart: 0, segmentHeight: 1000,
+  }), null, "The new screenshot must include the old seam");
+});
+
+test("repair keeps the rest of the previous capture untouched", () => {
+  const plan = runtime.LongPageSnapFrameRegistration.planSeamRefresh;
+  const oldFrame = new Uint8Array(800).fill(175);
+  const freshFrame = new Uint8Array(400).fill(214);
+  // Simulate missing glyph pixels in the old capture near the seam.
+  oldFrame.fill(255, 420, 438);
+  freshFrame.fill(25, 106, 124);
+  const repair = plan({
+    top: 310, covered: 450, screenshotEnd: 710,
+    segmentStart: 0, segmentHeight: 800,
+  });
+  const before = oldFrame.slice(0, repair.outputTop);
+  oldFrame.set(freshFrame.subarray(repair.sourceY, repair.sourceY + repair.height),
+    repair.destinationY);
+  assert.deepEqual(oldFrame.slice(0, repair.outputTop), before);
+  assert.equal(oldFrame[420], 25, "Newly painted heading pixels replace a blank old seam");
+  assert.equal(oldFrame[390], 175, "Earlier captured content remains untouched");
+});
