@@ -15,7 +15,7 @@ No domain purchase, Pages build dependencies, API keys, backend or analytics are
 
 ## Test design
 
-- `lab/index.html`: fixture catalog, 16-case release checklist, on-device persistence, downloadable JSON report.
+- `lab/index.html`: fixture catalog, 18-case release checklist, on-device persistence, downloadable JSON report.
 - `lab/fixture.html?case=baseline|sticky|lazy|growth|long|nested|wide|motion`: one visual template with deterministic cases.
 - `lab/verify.html`: select real downloaded JPEG, PNG or WebP files; inspect byte size, dimensions and multipart sequence without decoding images or transmitting content.
 - `lab/data.js`: version-controlled fixture metadata and acceptance expectations.
