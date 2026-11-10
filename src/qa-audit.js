@@ -32,7 +32,7 @@
         throw new Error("Fixture heading or zone sequence mismatch.");
       }
       const zoneBounds = markerRect(zone);
-      const background = rgbValue(getComputedStyle(zone).backgroundColor);
+      const background = rgbValue(globalThis.getComputedStyle(zone).backgroundColor);
       if (!background) {
         throw new Error("Cannot inspect the fixture's zone colors.");
       }
