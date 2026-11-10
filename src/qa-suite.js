@@ -19,7 +19,7 @@ const FIXTURE_ORIGIN = "https://cyoann.github.io";
 const FIXTURE_PATH = "/longpage-snap/lab/fixture.html";
 export function qaRequest(url) {
   try {
-    const parsed = new URL(url);
+    const parsed = new globalThis.URL(url);
     if (parsed.origin !== FIXTURE_ORIGIN || parsed.pathname !== FIXTURE_PATH) {
       return null;
     }
