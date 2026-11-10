@@ -166,7 +166,7 @@ try {
   await check("Mobile lab with all eight fixtures and sixteen checks", async () => {
     await visit("/lab/", "document.querySelectorAll('#scenario-cards .card').length===8");
     const info = await evaluate("({cards:document.querySelectorAll('#scenario-cards .card').length, rows:document.querySelectorAll('#checklist tr').length, width:document.documentElement.clientWidth, overflow:document.documentElement.scrollWidth>390})");
-    if (info.cards !== 8 || info.rows !== 16 || info.width !== 390 || info.overflow) {
+    if (info.cards !== 8 || info.rows !== 18 || info.width !== 390 || info.overflow) {
       throw new Error(JSON.stringify(info));
     }
     await capture("lab-mobile");
